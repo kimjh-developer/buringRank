@@ -26,8 +26,18 @@ extension Text {
             .font(Font.custom(fontName.name, size: fontSize))
             .foregroundColor(fontColor)
     }
+    
 }
 
+extension Date {
+    /// 오늘의 요일을 문자열로 반환하는 메서드
+    func dayOfWeek(locale: Locale = Locale(identifier: "ko_KR")) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = locale // 로케일 설정 (기본: 한국어)
+        formatter.dateFormat = "E" // 요일 포맷
+        return formatter.string(from: self)
+    }
+}
 
 
 

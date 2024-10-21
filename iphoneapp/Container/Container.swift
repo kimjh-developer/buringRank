@@ -33,7 +33,7 @@ struct Container: View {
         }
     }
     
-    @State private var selectNavi : navis = .burning
+    @State private var selectNavi : navis = .record
     var body: some View {
         ZStack {
             Color.black
@@ -79,8 +79,6 @@ struct Container: View {
             }
             .frame(maxWidth: .infinity)
         }
-
-        
     }
 }
 
