@@ -20,14 +20,30 @@ enum StringType{
     }
 }
 
-extension Text {
+
+// View 확장 정의
+extension View {
     func style(fontName: StringType, fontSize: CGFloat = 24, fontColor: Color = .black) -> some View {
         self
             .font(Font.custom(fontName.name, size: fontSize))
             .foregroundColor(fontColor)
     }
-    
+
+    func withUnderline(height: CGFloat = 5, color: Color = .clear) -> some View {
+            self
+                .background(
+                    GeometryReader { geometry in
+                        VStack {
+                            Spacer() // Text와 언더라인 간의 여백을 없앰
+                            Rectangle()
+                                .frame(width: geometry.size.width, height: height) // Text의 너비에 맞춤
+                                .foregroundColor(color) // 언더라인 색상 설정
+                        }
+                    }
+                )
+        }
 }
+
 
 extension Date {
     /// 오늘의 요일을 문자열로 반환하는 메서드
