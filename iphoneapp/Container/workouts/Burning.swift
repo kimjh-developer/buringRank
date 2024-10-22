@@ -37,7 +37,7 @@ struct Burning: View {
             }
         }
         .navigationDestination(isPresented: $nextPageActivate) {
-            SelectWorkoutLevel()
+            SelectWorkoutLevel(workoutDone: $nextPageActivate)
         }
         
     }
