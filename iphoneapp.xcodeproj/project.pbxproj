@@ -45,6 +45,7 @@
 			membershipExceptions = (
 				Resource/CommonFunc/DoubleExt.swift,
 				Resource/CommonFunc/IntExt.swift,
+				Resource/CommonFunc/ShapeExt.swift,
 				Resource/CommonFunc/StringExt.swift,
 				"Resource/Fonts/I AM A PLAYER.ttf",
 				"Resource/Fonts/KBO Dia Gothic_bold.ttf",
