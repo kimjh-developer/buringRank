@@ -22,11 +22,14 @@ class RecordVM : ObservableObject{
     ]
     
     @Published var SummaryArray : Array<SummaryRow> = [
-        SummaryRow(summaryCommon:.calorie, stackStr: "이번주 누적",  stackValue: 1234.addComma(), bestStr: "이번주 최고", bestUpdown: 100, bestValue: 735.addComma()),
-        SummaryRow(summaryCommon:.walk, stackStr: "이번주 누적",  stackValue: 30000.addComma(),  bestStr: "이번주 최고", bestUpdown: -100, bestValue: 735.addComma()),
-        SummaryRow(summaryCommon:.distance, stackStr: "이번주 누적",  stackValue: 32.addComma(),  bestStr: "이번주 최고", bestUpdown: 95, bestValue: 735.addComma()),
-        SummaryRow(summaryCommon:.face, stackStr: "이번주 누적",  stackValue: 153.addComma(),  bestStr: "이번주 최고", bestUpdown: -60, bestValue: 140.addComma()),
-]
+        SummaryRow(summaryCommon:.calorie,
+                   stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
+                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
+        SummaryRow(summaryCommon:.distance,
+                   stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
+                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
+        
+    ]
 }
 
 struct WorkoutProgress:Hashable {
@@ -67,22 +70,22 @@ enum ProgressLevel{
     }
 }
 
-struct SummaryRow:Hashable {
-    var summaryCommon : SummaryCommon
-    var stackStr : String
-    var stackUpdown : Int?
-    var stackValue : String?
-    var bestStr : String?
-    var bestUpdown : Int?
-    var bestValue : String?
+struct SummaryRow:Equatable,Hashable {
+    var summaryCommon : SummaryCommon?
+    var stack : SummaryRowElement?
+    var best : SummaryRowElement?
 }
-
+struct SummaryRowElement :Equatable,Hashable {
+    var Str : String?
+    var Updown : Int?
+    var Value : Double?
+}
 enum SummaryCommon{
     case calorie,walk,distance,face
     var element : SummaryElement{
         switch self {
         case .calorie:
-            return SummaryElement(title: "소모 칼로리", measure: "KCAL")
+            return SummaryElement(title: "칼로리", measure: "KCAL")
         case .walk:
             return SummaryElement(title: "걸음수", measure: "걸음")
         case .distance:

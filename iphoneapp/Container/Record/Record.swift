@@ -70,36 +70,38 @@ struct Record: View {
     private func summarys() -> some View{
         ForEach(vm.SummaryArray, id: \.self) { row in
             VStack {
-                summaryCell(item: row)
-                if row.summaryCommon == .distance{
-                    Button {
-                        vm.isFreeMember.toggle()
-                    } label: {
-                        HStack {
-                            ZStack {
-                                Text("이동 경로 보기")
-                                    .style(fontName: .kmedium, fontSize: 20, fontColor: vm.isFreeMember ? Color.btnDisable : .black)
-                                    .padding(.horizontal)
-                                    .padding(.vertical,10)
-                                    .background {
-                                        if vm.isFreeMember{
-                                            RoundedRectangle(cornerRadius: 50)
-                                                .stroke(.white, lineWidth: 2)
-                                        }else{
-                                            RoundedRectangle(cornerRadius: 50)
-                                                .foregroundStyle(.white)
+                if let _ = row.summaryCommon{
+                    summaryCell(item: row)
+                    if row.summaryCommon == .distance{
+                        Button {
+                            vm.isFreeMember.toggle()
+                        } label: {
+                            HStack {
+                                ZStack {
+                                    Text("이동 경로 보기")
+                                        .style(fontName: .kmedium, fontSize: 20, fontColor: vm.isFreeMember ? Color.btnDisable : .black)
+                                        .padding(.horizontal)
+                                        .padding(.vertical,10)
+                                        .background {
+                                            if vm.isFreeMember{
+                                                RoundedRectangle(cornerRadius: 50)
+                                                    .stroke(.white, lineWidth: 2)
+                                            }else{
+                                                RoundedRectangle(cornerRadius: 50)
+                                                    .foregroundStyle(.white)
+                                            }
                                         }
+                                    
+                                    if vm.isFreeMember{
+                                        Image("icon_lock")
+                                            .resizable()
+                                            .aspectRatio(contentMode: .fit)
+                                            .frame(width: 17)
                                     }
-                                
-                                if vm.isFreeMember{
-                                    Image("icon_lock")
-                                        .resizable()
-                                        .aspectRatio(contentMode: .fit)
-                                        .frame(width: 17)
                                 }
+                                .padding(.vertical)
+                                Spacer()
                             }
-                            .padding(.vertical)
-                            Spacer()
                         }
                     }
                 }
@@ -113,67 +115,43 @@ struct Record: View {
             line()
                 .padding(.vertical)
             VStack(spacing:15){
-                Text(item.summaryCommon.element.title)
+                Text("\(item.summaryCommon == .calorie ? "소모 " : "")\(item.summaryCommon?.element.title ?? "")")
                     .style(fontName: .kbold, fontSize: 25, fontColor: .white)
                     .frame(maxWidth: .infinity,alignment: .leading)
-                
-                HStack (alignment:.bottom){
-                    Text("· \(vm.selectDay==nil ? item.stackStr : "오늘 누적")")
-                        .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
-                    Spacer()
-                    HStack(spacing: 0) {
-                        if let stackUpdown = item.stackUpdown{
-                            let color = stackUpdown>0 ? Color.themeRed : .blue
-                            Text(abs(stackUpdown).addComma())
-                                .style(fontName: .player, fontSize: 12, fontColor: color)
-                            Image(systemName: stackUpdown>0 ? "arrowtriangle.up.fill" :"arrowtriangle.down.fill")
-                                .renderingMode(.template)
-                                .font(.system(size: 12))
-                                .foregroundStyle(color)
-                        }
-                        if let stackValue = item.stackValue{
-                            HStack(spacing: 4) {
-                                Text(stackValue)
-                                    .style(fontName: .player, fontSize: 20, fontColor: .white)
-                                if let measure = item.summaryCommon.element.measure{
-                                    Text(measure)
-                                        .style(fontName: .player, fontSize: 20, fontColor: .white)
-                                }
-                            }
-                        }
-                    }
+                if let stack = item.stack{cellDetail(element: stack, measure: .calorie)}
+                if let best = item.best{cellDetail(element: best, measure: .calorie)}
+            }
+        }
+    }
+    // MARK: - 셀 뷰
+    @ViewBuilder
+    private func cellDetail(element : SummaryRowElement,measure : SummaryCommon?) -> some View{
+        HStack (alignment:.bottom){
+            Text("· \(vm.selectDay==nil ? element.Str ?? "" : "오늘 누적")")
+                .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
+            Spacer()
+            HStack(spacing: 0) {
+                if let updown = element.Updown{
+                    let color = updown>0 ? Color.themeRed : .blue
+                    Text(abs(updown).addComma())
+                        .style(fontName: .player, fontSize: 12, fontColor: color)
+                    Image(systemName: updown>0 ? "arrowtriangle.up.fill" :"arrowtriangle.down.fill")
+                        .renderingMode(.template)
+                        .font(.system(size: 12))
+                        .foregroundStyle(color)
                 }
-                if let bestStr = item.bestStr{
-                    HStack {
-                        Text("· \(vm.selectDay==nil ? bestStr : "오늘 최고")")
-//                        Text("· \(bestStr)")
-                            .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
-                        Spacer()
-                        HStack(alignment:.bottom,spacing: 0) {
-                            if let bestUpdown = item.bestUpdown{
-                                let color = bestUpdown>0 ? Color.themeRed : .blue
-                                Text(abs(bestUpdown).addComma())
-                                    .style(fontName: .player, fontSize: 12, fontColor: color)
-                                Image(systemName: bestUpdown>0 ? "arrowtriangle.up.fill" :"arrowtriangle.down.fill")
-                                    .renderingMode(.template)
-                                    .font(.system(size: 12))
-                                    .foregroundStyle(color)
-                            }
-                            if let bestValue = item.bestValue{
-                                HStack(spacing: 4) {
-                                    Text(bestValue)
-                                        .style(fontName: .player, fontSize: 20, fontColor: .white)
-                                    if let measure = item.summaryCommon.element.measure{
-                                        Text(measure)
-                                            .style(fontName: .player, fontSize: 20, fontColor: .white)
-                                    }
-                                }
-                            }
+                if let value = element.Value{
+                    let ival = Int(value)
+                    HStack(spacing: 4) {
+                        Text(ival.addComma())
+                            .style(fontName: .player, fontSize: 20, fontColor: .white)
+                        if let measure = measure?.element.measure{
+                            Text(measure)
+                                .style(fontName: .player, fontSize: 20, fontColor: .white)
                         }
                     }
                 }
             }
-            
         }
     }
     

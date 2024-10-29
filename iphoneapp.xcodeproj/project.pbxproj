@@ -43,7 +43,9 @@
 		045824BF2CC333F9005D3889 /* Exceptions for "iphoneapp" folder in "watchApp Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Resource/CommonFunc/DateExt.swift,
 				Resource/CommonFunc/DoubleExt.swift,
+				Resource/CommonFunc/GridLine.swift,
 				Resource/CommonFunc/IntExt.swift,
 				Resource/CommonFunc/ShapeExt.swift,
 				Resource/CommonFunc/StringExt.swift,
