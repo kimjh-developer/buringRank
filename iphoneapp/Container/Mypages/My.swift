@@ -10,76 +10,90 @@ import SwiftUI
 struct My: View {
     @StateObject var vm = MyVM()
     var body: some View {
-        VStack {
-            HStack {
-                VStack(spacing: 5) {
-                    Text("랭커님의 최고 기록")
-                        .style(fontName: .kbold, fontSize: 25, fontColor: .black)
-                    HStack(spacing: 0) {
-                        Text("지피지기")
-                            .style(fontName: .klight, fontSize: 15, fontColor: .black)
-                        Text("BURNING")
-                            .style(fontName: .klight, fontSize: 15, fontColor: .themeRed)
-                        Text("RANKUP")
-                            .style(fontName: .klight, fontSize: 15, fontColor: .black)
-                    }
-                    .frame(maxWidth: .infinity,alignment: .leading)
-                }
-            }
-            .frame(maxWidth: .infinity,alignment: .leading)
-            .padding(.horizontal)
-            ScrollView {
-                VStack {
-                    ZStack {
-                        Image("summaryBack")
-                            .resizable()
-                            .aspectRatio(contentMode: .fill)
-                            .frame(maxWidth: .infinity)
-                        VStack(spacing: 20) {
-                            summaryRow(info: MysummaryInfo(title: "운동 시간", value: "06 : 25 : 55"))
-                            summaryRow(info: MysummaryInfo(title: "심박수", value: "158",updownValue: 125,measure: "BPM"))
-                            summaryRow(info: MysummaryInfo(title: "이동 거리", value: "1,125",updownValue: 1210,measure: "M"))
-                            summaryRow(info: MysummaryInfo(title: "소모 칼로리", value: "1,255",updownValue: 376,measure: "KCAL"))
+        ZStack {
+            Color.white
+                .ignoresSafeArea()
+            VStack {
+                HStack {
+                    VStack(spacing: 5) {
+                        Text("랭커님의 최고 기록")
+                            .style(fontName: .kbold, fontSize: 25, fontColor: .black)
+                            
+                        HStack(spacing: 0) {
+                            Text("지피지기")
+                                .style(fontName: .klight, fontSize: 15, fontColor: .black)
+                            Text("BURNING")
+                                .style(fontName: .klight, fontSize: 15, fontColor: .themeRed)
+                            Text("RANKUP")
+                                .style(fontName: .klight, fontSize: 15, fontColor: .black)
                         }
-                        .padding()
+                        
                     }
-                    
+                    Spacer()
                     NavigationLink {
-                        Text("기본 정보 수정")
+                        Text("Setting")
                     } label: {
-                        navigationRow(title: "기본 정보 수정")
+                        Image("SettingIcon")
+                            .resizable()
+                            .aspectRatio(contentMode: .fit)
+                            .frame(width: 28, height: 28)
                     }
-                    
-                    NavigationLink {
-                        Text("측정 기준 설정")
-                    } label: {
-                        navigationRow(title: "측정 기준 설정")
-                    }
-                    
-                    NavigationLink {
-                        Text("Elite모드 구독")
-                    } label: {
-                        navigationRow(title: "Elite모드 구독",iconActivate: true)
-                    }
-                    
-                    NavigationLink {
-                        Text("고객센터")
-                    } label: {
-                        navigationRow(title: "고객센터")
-                    }
+                }
+                .padding(.horizontal)
+                ScrollView {
+                    VStack {
+                        ZStack {
+                            Image("summaryBack")
+                                .resizable()
+                                .aspectRatio(contentMode: .fill)
+                                .frame(maxWidth: .infinity)
+                            VStack(spacing: 20) {
+                                summaryRow(info: MysummaryInfo(title: "운동 시간", value: "06 : 25 : 55"))
+                                summaryRow(info: MysummaryInfo(title: "심박수", value: "158",updownValue: 125,measure: "BPM"))
+                                summaryRow(info: MysummaryInfo(title: "이동 거리", value: "1,125",updownValue: 1210,measure: "M"))
+                                summaryRow(info: MysummaryInfo(title: "소모 칼로리", value: "1,255",updownValue: 376,measure: "KCAL"))
+                            }
+                            .padding()
+                        }
+                        
+                        NavigationLink {
+                            Text("기본 정보 수정")
+                        } label: {
+                            navigationRow(title: "기본 정보 수정")
+                        }
+                        
+                        NavigationLink {
+                            Text("측정 기준 설정")
+                        } label: {
+                            navigationRow(title: "측정 기준 설정")
+                        }
+                        
+                        NavigationLink {
+                            Grades()
+                        } label: {
+                            navigationRow(title: "Elite모드 구독",iconActivate: true)
+                        }
+                        
+                        NavigationLink {
+                            Text("고객센터")
+                        } label: {
+                            navigationRow(title: "고객센터")
+                        }
 
+                    }
+                }
+                NavigationLink {
+                    Text("구매페이지")
+                } label: {
+                    Image("banner")
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .frame(maxWidth: .infinity)
                 }
             }
-            NavigationLink {
-                Text("구매페이지")
-            } label: {
-                Image("banner")
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .frame(maxWidth: .infinity)
-            }
+            .ignoresSafeArea(edges: .bottom)
         }
-        .ignoresSafeArea(edges: .bottom)
+        
     }
     
     // MARK: - 로우
