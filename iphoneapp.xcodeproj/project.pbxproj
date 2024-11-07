@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		045824B02CC1EA45005D3889 /* watchApp Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 045824A32CC1EA42005D3889 /* watchApp Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
+		047C2DC82CD30B15003659F7 /* FSCalendar in Frameworks */ = {isa = PBXBuildFile; productRef = 047C2DC72CD30B15003659F7 /* FSCalendar */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -89,6 +90,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				047C2DC82CD30B15003659F7 /* FSCalendar in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -142,6 +144,7 @@
 			);
 			name = iphoneapp;
 			packageProductDependencies = (
+				047C2DC72CD30B15003659F7 /* FSCalendar */,
 			);
 			productName = iphoneapp;
 			productReference = 0458248E2CC1E7F9005D3889 /* iphoneapp.app */;
@@ -196,6 +199,9 @@
 			);
 			mainGroup = 045824852CC1E7F9005D3889;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0458248F2CC1E7F9005D3889 /* Products */;
 			projectDirPath = "";
@@ -461,6 +467,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "watchApp-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.burningrank.iphoneapp;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -493,6 +501,8 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = "watchApp-Watch-App-Info.plist";
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.burningrank.iphoneapp;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -542,6 +552,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/WenchaoD/FSCalendar.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.8.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		047C2DC72CD30B15003659F7 /* FSCalendar */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */;
+			productName = FSCalendar;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 045824862CC1E7F9005D3889 /* Project object */;
 }

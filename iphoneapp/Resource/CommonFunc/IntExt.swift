@@ -43,8 +43,6 @@ extension Int{
             
             return numberFormatter.string(from: NSNumber(value: self)) ?? "\(self)"
         }
-    
-   
-
-    
 }
+
+

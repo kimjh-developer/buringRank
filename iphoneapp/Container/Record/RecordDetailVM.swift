@@ -9,14 +9,13 @@ import Foundation
 class RecordDetailVM:ObservableObject{
     let calculateRecord = CalculateRecord()
     let calculateDate = CalculateDate()
-    @Published var selectDateType : DateType = .MONTH
-    @Published var selectSummaryType : SummaryType = .calories
+    @Published var selectDateType : DateType = .PERIOD
+    @Published var selectSummaryType : SummaryType = .distance
     @Published var isFreeMember : Bool = false
     @Published var summaryArray : Array<SummaryRow>?
     
-    @Published var chooseDate : Date = Date()
+    @Published var chooseDate : [Date] = [Date()]
     @Published var datePopupActivate : Bool = true
-    
     @Published var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @Published var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     
@@ -29,6 +28,10 @@ class RecordDetailVM:ObservableObject{
     ]
     
     @Published var data: [DValue] = []
+    
+    @Published var choosedDatas : Array<Date>?
+    @Published var warnMSG : String?
+    @Published var warnActivate : Bool = false
     
     init(){
         changeSummaryArray()
@@ -69,20 +72,19 @@ class RecordDetailVM:ObservableObject{
                     summaryArray[index].best = bestRow // 수정된 값 재할당
                 }
             }
-        
         self.summaryArray = summaryArray // 수정된 배열을 다시 할당
     }
     
     private final func makeDateArray(){
         switch selectDateType {
         case .WEEK:
-            data = calculateDate.weekDates(from: chooseDate)
+            data = calculateDate.weekDates(from: chooseDate.first ?? Date())
         case .MONTH:
-            data = calculateDate.weekDates(from: chooseDate)
+            data = calculateDate.weekDates(from: chooseDate.first ?? Date())
         case .YEAR:
-            data = calculateDate.weekDates(from: chooseDate)
+            data = calculateDate.weekDates(from: chooseDate.first ?? Date())
         case .PERIOD:
-            data = calculateDate.weekDates(from: chooseDate)
+            data = calculateDate.weekDates(from: chooseDate.first ?? Date())
         }
     }
 }

@@ -65,6 +65,38 @@ struct RecordDetail: View {
                 }
             }
             
+            if vm.selectSummaryType == .distance && vm.selectDateType == .WEEK{
+                Button {
+                    vm.isFreeMember.toggle()
+                } label: {
+                    HStack {
+                        ZStack {
+                            Text("이동 경로 보기")
+                                .style(fontName: .kmedium, fontSize: 20, fontColor: vm.isFreeMember ? Color.btnDisable : .black)
+                                .padding(.horizontal)
+                                .padding(.vertical,10)
+                                .background {
+                                    if vm.isFreeMember{
+                                        RoundedRectangle(cornerRadius: 50)
+                                            .stroke(.white, lineWidth: 2)
+                                    }else{
+                                        RoundedRectangle(cornerRadius: 50)
+                                            .foregroundStyle(.white)
+                                    }
+                                }
+                            
+                            if vm.isFreeMember{
+                                Image("icon_lock")
+                                    .resizable()
+                                    .aspectRatio(contentMode: .fit)
+                                    .frame(width: 17)
+                            }
+                        }
+                        .frame(maxWidth: .infinity,alignment: .center)
+                        
+                    }
+                }
+            }
         }
         .frame(maxWidth: .infinity,alignment: .leading)
     }
@@ -147,8 +179,28 @@ struct RecordDetail: View {
     private func theChart() -> some View{
         
         VStack {
-            Text(vm.selectDateType.formattedDateText(for: vm.chooseDate))
-                .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
+            Button {
+                vm.datePopupActivate.toggle()
+            } label: {
+                if vm.selectDateType == .PERIOD{
+                    if let choosedDatas = vm.choosedDatas{
+                        if choosedDatas.count>1{
+                            Text("\(choosedDatas.first!.toString())~\(choosedDatas.first!.toString(format: "MM월 dd일"))")
+                            .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
+                        }else{
+                            Text(choosedDatas.first!.toString())
+                            .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
+                        }
+                        
+                    }else{
+                        Text("선택하세요")
+                        .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
+                    }
+                }else{
+                    Text(vm.selectDateType.formattedDateText(for: vm.chooseDate.first ?? Date()))
+                        .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
+                }
+            }
             ZStack {
                 GeometryReader { proxy in
                     Color.clear
@@ -215,7 +267,7 @@ struct RecordDetail: View {
         for index in 0..<data.count {
             result.append(data[index].date)
         }
-        if let nextDay = data.last?.date.nextDay(){
+        if let nextDay = data.last?.date.nextDate(){
             result.append(nextDay)
         }
         
@@ -303,7 +355,10 @@ struct RecordDetail: View {
     private func datePopups() -> some View{
         ZStack {
             GeometryReader { proxy in
-                Color.purple.opacity(0.5)
+                Color.black.opacity(0.5)
+                    .onTapGesture {
+                        vm.datePopupActivate = false
+                    }
                     
                 VStack {
                     Spacer()
@@ -315,7 +370,7 @@ struct RecordDetail: View {
                         case .MONTH:
                             VStack {
                                 Text("월 선택")
-                                    .style(fontName: .kbold, fontSize: 25, fontColor: .black)
+                                    .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
                                 HStack {
                                                 Spacer()
                                     Picker("월", selection: $vm.selectedMonth) {
@@ -344,16 +399,48 @@ struct RecordDetail: View {
                             }
                             .padding(.vertical)
                         case .YEAR:
-                            Text("year")
+                            VStack {
+                                Text("년 선택")
+                                    .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
+                                HStack {
+                                    Spacer()
+                                    Picker("연도", selection: $vm.selectedYear) {
+                                                    ForEach(years, id: \.self) { year in
+                                                        Text("\(String(year))년")
+                                                            .tag(year)
+                                                            .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
+                                                    }
+                                                }
+                                                .pickerStyle(WheelPickerStyle())
+                                                .frame(width: 150)
+                                                .clipped()
+                                                Spacer()
+                                            }
+                            }
+                            .padding(.vertical)
                         case .PERIOD:
-                            Text("period")
+                            VStack {
+                                Text("기간 선택")
+                                    .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
+                                CalendarView(choosedDatas: $vm.choosedDatas, warnMSG: $vm.warnMSG, warnActivate: $vm.warnActivate)
+                            }
+                            .padding(.vertical)
                         }
                         
-                        Btn(defaultString: "선택완료", fontsize: 20, fontcolor: .white, defaultColor: .black)
+                        let buttonText = vm.selectDateType == .PERIOD && vm.choosedDatas != nil
+                            ? (vm.choosedDatas!.count < 2
+                                ? vm.choosedDatas!.first!.toString()
+                                : "\(vm.choosedDatas!.first!.toString())~\(vm.choosedDatas!.last!.toString(format: "MM월 dd일"))")
+                            : "선택완료"
+
+                        Btn(defaultString: buttonText, fontsize: 20, fontcolor: .white, defaultColor: .black)
                             .padding(.horizontal)
                             .padding(.bottom)
+
+                        
                     }
-                    .frame(height: proxy.size.height*0.3)
+                    .padding()
+                    .frame(height: vm.selectDateType == .PERIOD ? proxy.size.height*0.7 : proxy.size.height*0.35)
                     .frame(maxWidth: .infinity)
                     .background {
                         CustomRoundedRectangle(topLeft: 20, topRight: 20, bottomLeft: 0, bottomRight: 0)

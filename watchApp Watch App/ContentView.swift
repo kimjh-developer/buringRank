@@ -10,15 +10,10 @@ import SwiftUI
 struct ContentView: View {
     @EnvironmentObject var workoutManager : WorkoutManager
     var body: some View {
-        VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
-                .onAppear {
-                    workoutManager.requestAuthorization()
-                }
-        }
+        WatchAppHome()
+            .onAppear {
+                workoutManager.requestAuthorization()
+            }
     }
 }
 

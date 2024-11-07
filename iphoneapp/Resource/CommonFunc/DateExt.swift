@@ -23,12 +23,19 @@ import Foundation
 
 extension Date {
     // 다음 날을 구하는 메서드
-    func nextDay() -> Date? {
+    func nextDate() -> Date? {
         return Calendar.current.date(byAdding: .day, value: 1, to: self)
     }
 
     // 주어진 특정 날짜를 추가하여 계산하는 메서드
-    func addingDays(_ days: Int) -> Date? {
+    func dayAfter(_ days: Int) -> Date? {
         return Calendar.current.date(byAdding: .day, value: days, to: self)
     }
+    
+    func toString(format: String = "yyyy년 MM월 dd일") -> String {
+            let dateFormatter = DateFormatter()
+            dateFormatter.locale = Locale(identifier: "ko_KR") // 한국어 형식을 위한 로케일 설정
+            dateFormatter.dateFormat = format
+            return dateFormatter.string(from: self)
+        }
 }
