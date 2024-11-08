@@ -31,7 +31,7 @@ struct My: View {
                     }
                     Spacer()
                     NavigationLink {
-                        Text("Setting")
+                        Setting()
                     } label: {
                         Image("SettingIcon")
                             .resizable()
@@ -56,14 +56,14 @@ struct My: View {
                             .padding()
                         }
                         
-                        NavigationLink {
-                            Text("기본 정보 수정")
-                        } label: {
-                            navigationRow(title: "기본 정보 수정")
-                        }
+//                        NavigationLink {
+//                            Text("기본 정보 수정")
+//                        } label: {
+//                            navigationRow(title: "기본 정보 수정")
+//                        }
                         
                         NavigationLink {
-                            Text("측정 기준 설정")
+                            measurement()
                         } label: {
                             navigationRow(title: "측정 기준 설정")
                         }
@@ -75,7 +75,7 @@ struct My: View {
                         }
                         
                         NavigationLink {
-                            Text("고객센터")
+                            CSCenter()
                         } label: {
                             navigationRow(title: "고객센터")
                         }
@@ -83,7 +83,7 @@ struct My: View {
                     }
                 }
                 NavigationLink {
-                    Text("구매페이지")
+                    Grades()
                 } label: {
                     Image("banner")
                         .resizable()
