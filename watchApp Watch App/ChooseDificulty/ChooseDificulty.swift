@@ -118,12 +118,15 @@ struct ChooseDificulty: View {
         VStack(spacing: 6,content: {
             Text(title)
                 .style(fontName: .kmedium,fontSize: 15,fontColor: isActivate ? Color.btnActivate : .white)
-            if let baselineHeartRate = workoutManager.baselineHeartRate{
+            if let baselineHeartRate = workoutManager.baselineHeartRate,
+               let selectedWorkout = workoutManager.selectedWorkout{
                 HStack(content: {
+                    
                     Text("\((baselineHeartRate*low/100).toString(withDecimalPlaces:0))~\((baselineHeartRate*high/100).toString(withDecimalPlaces: 0))bpm"
                     )
                         .style(fontName: .klight,fontSize: 12,fontColor: isActivate ? Color.btnActivate : .white)
                         .frame(maxWidth: .infinity)
+                    
                 })
             }
             

@@ -13,15 +13,18 @@ class WorkoutManager:NSObject,ObservableObject{
     let healthStore = HKHealthStore()
     @Published var selectedWorkout : HKWorkoutActivityType?
     @Published var workoutLevel : WorkoutLevel?
-    
+    @Published var AuthorizationGranted : Bool?
     var userAge : Int?
     
-    let typeToRead: Set = [
+    let typesToRead: Set = [
         HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
         HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+        HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
         HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+        HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+        HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
         HKObjectType.activitySummaryType()
@@ -29,10 +32,16 @@ class WorkoutManager:NSObject,ObservableObject{
     
     func startWorkout(workoutType: HKWorkoutActivityType) {}
     func requestAuthorization() {
-        healthStore.requestAuthorization(toShare: nil, read: typeToRead) { success, error in
+        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
             if success {
                 print("Authorization Granted")
+                DispatchQueue.main.asyncAfter(deadline: .now()+2.0){
+                    self.AuthorizationGranted = true
+                }
             } else {
+                DispatchQueue.main.async {
+                    self.AuthorizationGranted = false
+                }
                 print("💀 Authorization NOT Granted: \(error?.localizedDescription ?? "No error")")
             }
         }

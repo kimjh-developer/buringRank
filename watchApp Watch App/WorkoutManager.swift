@@ -15,10 +15,11 @@ class WorkoutManager:NSObject,ObservableObject{
     @Published var showingSummaryView : Bool = false{
         didSet{
             if showingSummaryView == false{
-                selectedWorkout = nil
+                resetWorkoutSession()
             }
         }
     }
+    @Published var workout : HKWorkout?
     var session : HKWorkoutSession?
     var builder : HKLiveWorkoutBuilder?
     var userAge : Int?
@@ -117,12 +118,15 @@ class WorkoutManager:NSObject,ObservableObject{
     }
     
     func resetWorkoutSession() {
-        session?.end()  // 세션을 종료하여 충돌 방지
-        session = nil
-        builder = nil
-        selectedWorkout = nil
-        workoutLevel = nil
+        DispatchQueue.main.async {
+            self.session?.end()  // 세션을 종료하여 충돌 방지
+            self.session = nil
+            self.builder = nil
+            self.selectedWorkout = nil
+            self.workoutLevel = nil
+            self.workout = nil
         print("✅ Workout session reset.")
+        }
     }
     
     func updateForStatistics(_ statistics : HKStatistics?){
@@ -208,7 +212,6 @@ class WorkoutManager:NSObject,ObservableObject{
     
     func endWorkout() {
         session?.end()
-        showingSummaryView = true
     }
     
 }
@@ -250,8 +253,10 @@ extension WorkoutManager : HKWorkoutSessionDelegate{
             
             // 워크아웃이 일시정지됨 - 필요한 데이터 중지
         case .ended:
-            
-            print("🏁 Workout session ended.")
+            DispatchQueue.main.async {
+                self.showingSummaryView = true
+                print("🏁 Workout session ended.-showingSummaryView")
+            }
             // 워크아웃이 종료됨 - 데이터 수집 종료 및 정리
             handleWorkoutEnd(date: date)
         case .prepared:
@@ -274,9 +279,12 @@ extension WorkoutManager : HKWorkoutSessionDelegate{
                     print("💀 Error finishing workout: \(error.localizedDescription)")
                     return
                 }
-                print("✅ Workout finished successfully.")
+                DispatchQueue.main.async{
+                    self.workout = workout
+                    print("✅ Workout finished successfully.")
+                }
                 // 필요시 추가적으로 세션 초기화
-                self.resetWorkoutSession()
+//                self.resetWorkoutSession()
             }
         }
     }

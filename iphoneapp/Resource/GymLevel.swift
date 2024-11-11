@@ -178,17 +178,17 @@ enum MeditationLevel:CaseIterable{
     var lowLevel : Double{
         switch self {
         case .normalLevel:
-            return 60
+            return 33.52
         case .hardLevel:
-            return 40
+            return 25.14
         }
     }
     var highLevel : Double{
         switch self {
         case .normalLevel:
-            return 100
+            return 55.87
         case .hardLevel:
-            return 60
+            return 33.51
         }
     }
 }

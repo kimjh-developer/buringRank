@@ -8,6 +8,7 @@
 import SwiftUI
 import HealthKit
 struct SummaryView: View {
+    @EnvironmentObject var workoutManager : WorkoutManager
     @Environment(\.dismiss) var dismiss
     @State private var durationFormatter : DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
@@ -16,24 +17,36 @@ struct SummaryView: View {
         return formatter
     }()
     var body: some View {
+        if workoutManager.selectedWorkout == nil{
+            ProgressView("운동을 저장중입니다.")
+                .navigationBarHidden(true)
+        }else{
             VStack {
                 ScrollView {
                     VStack(spacing: 15) {
-                    singleRow(title: "운동 시간", content: "00:58:24")
-                    singleRow(title: "이동 거리", content: 10.addComma(),measure: "km")
+                        singleRow(title: "운동 시간", content:
+                                    durationFormatter.string(from:workoutManager.workout?.duration ?? 0.0) ?? "")
+                        if workoutManager.selectedWorkout == .hiking || workoutManager.selectedWorkout == .running{
+                            singleRow(title: "이동 거리",
+                                      content: Measurement(value: workoutManager.workout?.totalDistance?.doubleValue(for: .meter()) ?? 0, unit: UnitLength.meters).formatted(.measurement(width: .abbreviated,usage: .road)),measure: "m")
+                        }
+                    
                     singleRow(title: "최고 심박수", content: "170",fColor: Color.themeRed,measure: "BPM")
                     singleRow(title: "소모 칼로리", content: 1231.addComma(),measure: "KCAL")
-                        ActivityRingView(healthStore: HKHealthStore())
+                        ActivityRingView(healthStore: workoutManager.healthStore)
                             .frame(width: 50, height: 50)
+                        
+                        Btn(defaultString: "버랭업 완료", fontsize: 20, fontcolor: .white, defaultColor: Color.btnActivate)
+                            .padding(.vertical)
+                            .onTapGesture {
+                                dismiss()
+                            }
                 }
                     
-                Btn(defaultString: "버랭업 완료", fontsize: 20, fontcolor: .white, defaultColor: Color.btnActivate)
-                    .padding(.vertical)
-                    .onTapGesture {
-                        dismiss()
-                    }
             }
         }
+        }
+            
     }
     // MARK: - 제목 내용라인
     @ViewBuilder

@@ -12,17 +12,19 @@ struct MatrixView: View {
     @EnvironmentObject var workoutManager : WorkoutManager
     @Binding var Gohome : Bool
     @State private var selection : Tab = .workouts
+    @State private var showingSummaryView : Bool = false
     enum Tab{
         case controls,workouts,nowPlay
     }
     
     var body: some View {
-        TabView(selection: $selection) {
-            ControlView(Gohome: $Gohome).tag(Tab.controls)
-            workoutView(vm: workoutViewVM(workoutManager: workoutManager)).tag(Tab.workouts)
-            NowPlayingView().tag(Tab.nowPlay)
+        ZStack {
+            TabView(selection: $selection) {
+                ControlView(Gohome: $Gohome).tag(Tab.controls)
+                workoutView(vm: workoutViewVM(workoutManager: workoutManager)).tag(Tab.workouts)
+                NowPlayingView().tag(Tab.nowPlay)
+            }
         }
-        
         .navigationTitle("")
         .navigationBarBackButtonHidden()
         .onAppear(perform: {
@@ -33,6 +35,11 @@ struct MatrixView: View {
         .onChange(of: workoutManager.running) { oldValue, newValue in
             if newValue{
                 displayWorkoutView()
+            }
+        }
+        .onChange(of: workoutManager.workout) { oldValue, newValue in
+            if newValue != nil{
+                showingSummaryView = true
             }
         }
     }

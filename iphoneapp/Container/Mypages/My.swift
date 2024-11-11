@@ -62,11 +62,11 @@ struct My: View {
 //                            navigationRow(title: "기본 정보 수정")
 //                        }
                         
-                        NavigationLink {
-                            measurement()
-                        } label: {
-                            navigationRow(title: "측정 기준 설정")
-                        }
+//                        NavigationLink {
+//                            measurement()
+//                        } label: {
+//                            navigationRow(title: "측정 기준 설정")
+//                        }
                         
                         NavigationLink {
                             Grades()

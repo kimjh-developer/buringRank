@@ -15,6 +15,9 @@ struct watchApp_Watch_AppApp: App {
             NavigationStack {
                 ContentView()
             }
+            .sheet(isPresented: $workoutManager.showingSummaryView, content: {
+                SummaryView()
+            })
             .environmentObject(workoutManager)
         }
     }
