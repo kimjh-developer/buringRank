@@ -6,34 +6,34 @@
 //
 
 import SwiftUI
-
+enum navis:CaseIterable{
+   case burning,record,my
+   
+   var name : String{
+       switch self {
+       case .burning:
+           return "버닝"
+       case .record:
+           return "기록"
+       case .my:
+           return "마이"
+       }
+   }
+   var icon : String{
+       switch self {
+       case .burning:
+           return "navFire"
+       case .record:
+           return "navMine"
+       case .my:
+           return "navRecord"
+       }
+   }
+}
 struct Container: View {
-    private enum navis:CaseIterable{
-        case burning,record,my
-        
-        var name : String{
-            switch self {
-            case .burning:
-                return "버닝"
-            case .record:
-                return "기록"
-            case .my:
-                return "마이"
-            }
-        }
-        var icon : String{
-            switch self {
-            case .burning:
-                return "navFire"
-            case .record:
-                return "navMine"
-            case .my:
-                return "navRecord"
-            }
-        }
-    }
-    
-    @State private var selectNavi : navis = .burning
+     
+    @EnvironmentObject var workoutManager: WorkoutManager
+    @State private var selectNavi : navis = .record
     var body: some View {
         ZStack {
             Color.black

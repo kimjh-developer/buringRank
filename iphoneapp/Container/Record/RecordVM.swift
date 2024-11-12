@@ -7,6 +7,7 @@
 
 import Foundation
 import SwiftUI
+import HealthKit
 class RecordVM : ObservableObject{
     @Published var workoutDay : [Int] = [0,2,3]
     @Published var selectDay : Int?
@@ -30,6 +31,54 @@ class RecordVM : ObservableObject{
                    best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
         
     ]
+    
+    func getWeekData() {
+            let workoutManager = WorkoutManager()
+
+            // 이번 주와 저번 주 날짜 계산
+            let (startOfThisWeek, endOfThisWeek) = workoutManager.getStartAndEndOfWeek()
+            let startOfLastWeek = Calendar.current.date(byAdding: .day, value: -7, to: startOfThisWeek)!
+            let endOfLastWeek = Calendar.current.date(byAdding: .day, value: -7, to: endOfThisWeek)!
+            
+            func fetchAndCompare(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryCommon) {
+                workoutManager.fetchWeeklyData(type: type, start: startOfLastWeek, end: endOfLastWeek) { lastWeekSamples in
+                    let lastWeekTotal = lastWeekSamples?.reduce(0) {
+                        $0 + $1.quantity.doubleValue(for: measureUnit)
+                    } ?? 0
+                    
+                    workoutManager.fetchWeeklyData(type: type, start: startOfThisWeek, end: endOfThisWeek) { thisWeekSamples in
+                        let thisWeekTotal = thisWeekSamples?.reduce(0) {
+                            $0 + $1.quantity.doubleValue(for: measureUnit)
+                        } ?? 0
+                        
+                        let difference = thisWeekTotal - lastWeekTotal
+                        
+                        let maxThisWeek = thisWeekSamples?.max(by: {
+                            $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
+                        })?.quantity.doubleValue(for: measureUnit) ?? 0
+
+                        DispatchQueue.main.async {
+                            let newRow = SummaryRow(
+                                summaryCommon: summaryType,
+                                stack: SummaryRowElement(Str: "이번주 누적", Updown: Int(difference), Value: thisWeekTotal),
+                                best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek)
+                            )
+                            if let index = self.SummaryArray.firstIndex(where: { $0.summaryCommon == summaryType }) {
+                                self.SummaryArray[index] = newRow
+                            } else {
+                                self.SummaryArray.append(newRow)
+                            }
+                        }
+                    }
+                }
+            }
+
+            // 걸음 수, 칼로리, 거리 비교
+            fetchAndCompare(type: .stepCount, measureUnit: HKUnit.count(), summaryType: .walk)
+            fetchAndCompare(type: .activeEnergyBurned, measureUnit: HKUnit.kilocalorie(), summaryType: .calorie)
+            fetchAndCompare(type: .distanceWalkingRunning, measureUnit: HKUnit.meterUnit(with: .kilo), summaryType: .distance)
+        }
+
 }
 
 struct WorkoutProgress:Hashable {

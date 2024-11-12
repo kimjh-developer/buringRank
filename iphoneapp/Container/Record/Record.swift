@@ -8,10 +8,11 @@
 import SwiftUI
 
 struct Record: View {
-    
+    @EnvironmentObject var workoutManager : WorkoutManager
     private let weeks = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
     private let thisDay = Date().dayOfWeek(locale: Locale(identifier: "en_US")).uppercased()
     @StateObject var vm = RecordVM()
+    
     var body: some View {
         ScrollView {
             VStack(spacing:20) {
@@ -21,6 +22,7 @@ struct Record: View {
                         Button {
                             if vm.workoutDay.contains(i){
                                 vm.selectDay =  i
+                                workoutManager.performComparisonForSelectedWeekday(weekday: i)
                             }
                         } label: {
                             weekCell(item: weeks[i],
@@ -41,6 +43,7 @@ struct Record: View {
                     if vm.selectDay != nil{
                         Button{
                             vm.selectDay = nil
+                            workoutManager.getWeekData()
                         }label : {
                             Text("<  이번 주 데이터")
                                 .style(fontName: .kmedium, fontSize: 18, fontColor: .themeRed)
@@ -63,12 +66,15 @@ struct Record: View {
             }
         }
         .padding()
+        .onAppear {
+            workoutManager.getWeekData()
+        }
     }
     
     // MARK: - 요약디테일
     @ViewBuilder
     private func summarys() -> some View{
-        ForEach(vm.SummaryArray, id: \.self) { row in
+        ForEach(workoutManager.SummaryArray, id: \.self) { row in
             VStack {
                 if let _ = row.summaryCommon{
                     summaryCell(item: row)
@@ -118,8 +124,8 @@ struct Record: View {
                 Text("\(item.summaryCommon == .calorie ? "소모 " : "")\(item.summaryCommon?.element.title ?? "")")
                     .style(fontName: .kbold, fontSize: 25, fontColor: .white)
                     .frame(maxWidth: .infinity,alignment: .leading)
-                if let stack = item.stack{cellDetail(element: stack, measure: .calorie)}
-                if let best = item.best{cellDetail(element: best, measure: .calorie)}
+                if let stack = item.stack{cellDetail(element: stack, measure: item.summaryCommon)}
+                if let best = item.best{cellDetail(element: best, measure: item.summaryCommon)}
             }
         }
     }

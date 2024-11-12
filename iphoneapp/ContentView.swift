@@ -9,7 +9,7 @@ import SwiftUI
 import HealthKit
 
 struct ContentView: View {
-    @EnvironmentObject var workoutmanager : WorkoutManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
     @State private var moveNext : Bool = false
     var body: some View {
@@ -30,21 +30,19 @@ struct ContentView: View {
                     .frame(width: wsize*0.7)
             }
             .onAppear {
-                workoutmanager.requestAuthorization()
+                workoutManager.requestAuthorization()
             }
-            .onChange(of: workoutmanager.AuthorizationGranted ?? false) { oldValue, newValue in
-                
+            .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
                 if newValue == true{
                         moveNext.toggle()
-                    }else{
-                        Alert(title: Text("권한설정"),
-                              message: Text("버닝랭크를 사용하기위해 운동정보를 허용해 주세요"),
-                              dismissButton: .default(Text("확인"), action: {
-                            moveNext.toggle()
-                        }))
                     }
-                
-                
+            }
+            .alert(isPresented: $workoutManager.AuthoriseWarn){
+                    Alert(title: Text("권한설정"),
+                          message: Text("버닝랭크를 사용하기위해 운동정보를 허용해 주세요"),
+                          dismissButton: .default(Text("확인"), action: {
+                        moveNext.toggle()
+                    }))
             }
         }
         .ignoresSafeArea() // 전체 화면 사용

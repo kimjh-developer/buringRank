@@ -8,11 +8,10 @@
 import SwiftUI
 import HealthKit
 struct Burning: View {
-    @EnvironmentObject var workoutManager : WorkoutManager
+    @EnvironmentObject var workoutManager: WorkoutManager
     let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
     var workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking,.mindAndBody,]
     @State var nextPageActivate : Bool = false
-    
     var body: some View {
         
         VStack {
@@ -36,9 +35,9 @@ struct Burning: View {
                     .padding()
             }
         }
-        .navigationDestination(isPresented: $nextPageActivate) {
-            SelectWorkoutLevel(workoutDone: $nextPageActivate)
-        }
+//        .navigationDestination(isPresented: $nextPageActivate) { // LazyVGrid 외부로 이동
+//                    SelectWorkoutLevel(workoutDone: $nextPageActivate)
+//                }
         
     }
     // MARK: - cell

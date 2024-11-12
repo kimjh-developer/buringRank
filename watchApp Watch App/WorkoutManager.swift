@@ -45,6 +45,8 @@ class WorkoutManager:NSObject,ObservableObject{
     private var lastUpdateTime: Date?  // 마지막 업데이트 시간 저장
     private var isPaused: Bool = false  // 케이던스 일시 정지 여부
     
+    @Published var selectDay : Int?
+    
     
     let typesToShare: Set = [
         HKQuantityType.workoutType(),
