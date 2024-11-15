@@ -48,4 +48,22 @@ class CalculateDate{
             return DValue(date: date, value: randomValue)
         }
     }
+    
+    /// 주어진 시작 날짜와 종료 날짜 사이의 모든 날짜를 반환
+    func customDates(from startDate: Date, to endDate: Date) -> [Date] {
+        var dates: [Date] = []
+        var currentDate = startDate
+        let calendar = Calendar.current
+
+        while currentDate <= endDate {
+            dates.append(currentDate)
+            if let nextDate = calendar.date(byAdding: .day, value: 1, to: currentDate) {
+                currentDate = nextDate
+            } else {
+                break
+            }
+        }
+
+        return dates
+    }
 }

@@ -9,13 +9,13 @@ import Foundation
 class RecordDetailVM:ObservableObject{
     let calculateRecord = CalculateRecord()
     let calculateDate = CalculateDate()
-    @Published var selectDateType : DateType = .PERIOD
-    @Published var selectSummaryType : SummaryType = .distance
+    @Published var timePeriod : TimePeriod = .weekly
+    @Published var selectSummaryType : SummaryType = .heartRate
     @Published var isFreeMember : Bool = false
     @Published var summaryArray : Array<SummaryRow>?
     
     @Published var chooseDate : [Date] = [Date()]
-    @Published var datePopupActivate : Bool = true
+    @Published var datePopupActivate : Bool = false
     @Published var selectedYear: Int = Calendar.current.component(.year, from: Date())
     @Published var selectedMonth: Int = Calendar.current.component(.month, from: Date())
     
@@ -29,7 +29,8 @@ class RecordDetailVM:ObservableObject{
     
     @Published var data: [DValue] = []
     
-    @Published var choosedDatas : Array<Date>?
+    @Published var choosedDatas
+    : Array<Date>?
     @Published var warnMSG : String?
     @Published var warnActivate : Bool = false
     
@@ -47,7 +48,7 @@ class RecordDetailVM:ObservableObject{
     }
     
     func changeSummaryArray(){
-        summaryArray = calculateRecord.presumeRow(dtype: selectDateType, summaryType: selectSummaryType)
+        summaryArray = calculateRecord.presumeRow(dtype: timePeriod, summaryType: selectSummaryType)
         addData()
     }
     
@@ -75,16 +76,25 @@ class RecordDetailVM:ObservableObject{
         self.summaryArray = summaryArray // 수정된 배열을 다시 할당
     }
     
-    private final func makeDateArray(){
-        switch selectDateType {
-        case .WEEK:
+    private final func makeDateArray() {
+        switch timePeriod {
+        case .weekly:
             data = calculateDate.weekDates(from: chooseDate.first ?? Date())
-        case .MONTH:
+        case .monthly:
             data = calculateDate.weekDates(from: chooseDate.first ?? Date())
-        case .YEAR:
+        case .yearly:
             data = calculateDate.weekDates(from: chooseDate.first ?? Date())
-        case .PERIOD:
-            data = calculateDate.weekDates(from: chooseDate.first ?? Date())
+        case .custom(let startDate, let endDate):
+            guard let startDate = startDate, let endDate = endDate else {
+                data = [] // 유효하지 않은 날짜의 경우 빈 배열 반환
+                return
+            }
+            let dates = calculateDate.customDates(from: startDate, to: endDate)
+                    data = dates.map { DValue(date: $0, value: 0.0) } // 기본값 0.0 설정
         }
     }
+
 }
+
+
+

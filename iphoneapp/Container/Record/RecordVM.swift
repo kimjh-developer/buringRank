@@ -23,10 +23,10 @@ class RecordVM : ObservableObject{
     ]
     
     @Published var SummaryArray : Array<SummaryRow> = [
-        SummaryRow(summaryCommon:.calorie,
+        SummaryRow(summaryType:.calorie,
                    stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
                    best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
-        SummaryRow(summaryCommon:.distance,
+        SummaryRow(summaryType:.distance,
                    stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
                    best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
         
@@ -40,7 +40,7 @@ class RecordVM : ObservableObject{
             let startOfLastWeek = Calendar.current.date(byAdding: .day, value: -7, to: startOfThisWeek)!
             let endOfLastWeek = Calendar.current.date(byAdding: .day, value: -7, to: endOfThisWeek)!
             
-            func fetchAndCompare(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryCommon) {
+            func fetchAndCompare(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryType) {
                 workoutManager.fetchWeeklyData(type: type, start: startOfLastWeek, end: endOfLastWeek) { lastWeekSamples in
                     let lastWeekTotal = lastWeekSamples?.reduce(0) {
                         $0 + $1.quantity.doubleValue(for: measureUnit)
@@ -59,11 +59,11 @@ class RecordVM : ObservableObject{
 
                         DispatchQueue.main.async {
                             let newRow = SummaryRow(
-                                summaryCommon: summaryType,
+                                summaryType: summaryType,
                                 stack: SummaryRowElement(Str: "이번주 누적", Updown: Int(difference), Value: thisWeekTotal),
                                 best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek)
                             )
-                            if let index = self.SummaryArray.firstIndex(where: { $0.summaryCommon == summaryType }) {
+                            if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
                                 self.SummaryArray[index] = newRow
                             } else {
                                 self.SummaryArray.append(newRow)
@@ -120,7 +120,7 @@ enum ProgressLevel{
 }
 
 struct SummaryRow:Equatable,Hashable {
-    var summaryCommon : SummaryCommon?
+    var summaryType : SummaryType?
     var stack : SummaryRowElement?
     var best : SummaryRowElement?
 }
@@ -129,10 +129,12 @@ struct SummaryRowElement :Equatable,Hashable {
     var Updown : Int?
     var Value : Double?
 }
-enum SummaryCommon{
-    case calorie,walk,distance,face
+enum SummaryType:CaseIterable{
+    case heartRate,calorie,walk,distance,face
     var element : SummaryElement{
         switch self {
+        case .heartRate:
+            return SummaryElement(title: "심박수", measure: "BPM")
         case .calorie:
             return SummaryElement(title: "칼로리", measure: "KCAL")
         case .walk:
@@ -143,6 +145,21 @@ enum SummaryCommon{
             return SummaryElement(title: "페이스")
         }
     }
+    /// 각 SummaryType에 해당하는 HealthKit QuantityType 반환
+       func toQuantityType() -> HKQuantityTypeIdentifier? {
+           switch self {
+           case .heartRate:
+               return .heartRate
+           case .calorie:
+               return .activeEnergyBurned
+           case .walk:
+               return .stepCount
+           case .distance:
+               return .distanceWalkingRunning
+           case .face:
+               return nil // Face 데이터는 별도의 처리가 필요하거나 미지원
+           }
+       }
 }
 struct SummaryElement {
     var title : String

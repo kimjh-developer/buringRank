@@ -20,18 +20,18 @@ struct Record: View {
                 HStack {
                     ForEach(weeks.indices, id: \.self) { i in
                         Button {
-                            if vm.workoutDay.contains(i){
+                            if workoutManager.existWeeks.contains(weeks[i]){
                                 vm.selectDay =  i
                                 workoutManager.performComparisonForSelectedWeekday(weekday: i)
                             }
                         } label: {
                             weekCell(item: weeks[i],
-                                     activate: vm.workoutDay.contains(i),
+                                     activate: workoutManager.existWeeks.contains(weeks[i]),
                                      isToday: weeks[i] == thisDay,
                                      selected: vm.selectDay == i
                             )
                         }
-                        .disabled(!vm.workoutDay.contains(i))
+//                        .disabled(!workoutManager.existWeeks.contains(weeks[i]))
                     }
                 }
                 
@@ -52,7 +52,7 @@ struct Record: View {
                     Spacer()
                     
                     NavigationLink {
-                        Text("detail")
+                        RecordDetail()
                     } label: {
                         Text("상세 데이터  >")
                             .style(fontName: .kmedium, fontSize: 18, fontColor: .themeRed)
@@ -76,9 +76,12 @@ struct Record: View {
     private func summarys() -> some View{
         ForEach(workoutManager.SummaryArray, id: \.self) { row in
             VStack {
-                if let _ = row.summaryCommon{
-                    summaryCell(item: row)
-                    if row.summaryCommon == .distance{
+                if let _ = row.summaryType{
+                    if row.summaryType != .heartRate{
+                        summaryCell(item: row)
+                    }
+                    
+                    if row.summaryType == .distance{
                         Button {
                             vm.isFreeMember.toggle()
                         } label: {
@@ -121,17 +124,17 @@ struct Record: View {
             line()
                 .padding(.vertical)
             VStack(spacing:15){
-                Text("\(item.summaryCommon == .calorie ? "소모 " : "")\(item.summaryCommon?.element.title ?? "")")
+                Text("\(item.summaryType == .calorie ? "소모 " : "")\(item.summaryType?.element.title ?? "")")
                     .style(fontName: .kbold, fontSize: 25, fontColor: .white)
                     .frame(maxWidth: .infinity,alignment: .leading)
-                if let stack = item.stack{cellDetail(element: stack, measure: item.summaryCommon)}
-                if let best = item.best{cellDetail(element: best, measure: item.summaryCommon)}
+                if let stack = item.stack{cellDetail(element: stack, measure: item.summaryType)}
+                if let best = item.best{cellDetail(element: best, measure: item.summaryType)}
             }
         }
     }
     // MARK: - 셀 뷰
     @ViewBuilder
-    private func cellDetail(element : SummaryRowElement,measure : SummaryCommon?) -> some View{
+    private func cellDetail(element : SummaryRowElement,measure : SummaryType?) -> some View{
         HStack (alignment:.bottom){
             Text("· \(vm.selectDay==nil ? element.Str ?? "" : "오늘 누적")")
                 .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
@@ -171,44 +174,44 @@ struct Record: View {
     }
     // MARK: - 요약
     @ViewBuilder
-    private func summaryProgressBar() -> some View{
-        VStack(alignment: .leading,spacing: 18) {
+    private func summaryProgressBar() -> some View {
+        VStack(alignment: .leading, spacing: 18) {
             Text("심박수")
                 .style(fontName: .kbold, fontSize: 25, fontColor: .white)
-            HStack(alignment:.bottom) {
-                Text("· \(vm.selectDay == nil ? "이번추 최고" : "오늘 최고")")
+            
+            HStack(alignment: .bottom) {
+                Text("· \(vm.selectDay == nil ? "이번주 최고" : "오늘 최고")")
                     .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
                 Spacer()
-                if let updownValue = vm.updownValue{
+                
+                if let updownValue = workoutManager.updownValue {
                     HStack(spacing: 0) {
-                        let color = updownValue>0 ? Color.themeRed : .blue
+                        let color = updownValue > 0 ? Color.themeRed : .blue
                         Text(abs(updownValue).addComma())
                             .style(fontName: .player, fontSize: 12, fontColor: color)
-                        Image(systemName: updownValue>0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
+                        Image(systemName: updownValue > 0 ? "arrowtriangle.up.fill" : "arrowtriangle.down.fill")
                             .renderingMode(.template)
                             .foregroundStyle(color)
                             .font(.system(size: 12))
                     }
                 }
-                Text("\(vm.hearRate?.addComma() ?? "-") BPM")
+                
+                Text("\(Int(workoutManager.getMaxHeartRate() ?? 0).addComma()) BPM")
                     .style(fontName: .player, fontSize: 20, fontColor: .white)
-                    .onAppear {
-                        vm.hearRate = 120
-                        vm.updownValue = -20
-                    }
             }
             
             Text("· 심박수 비중")
                 .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
-            VStack (spacing: 15){
-                ForEach(vm.workoutProgressArray, id: \.self) { row in
+            
+            VStack(spacing: 15) {
+                ForEach(workoutManager.workoutProgressArray, id: \.self) { row in
                     progressCell(item: row)
                 }
-                
             }
         }
-        .frame(maxWidth: .infinity,alignment: .leading)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
+
     // MARK: - 프로그레스셀
     @ViewBuilder
     private func progressCell(item:WorkoutProgress) -> some View{
@@ -254,8 +257,6 @@ struct Record: View {
                 Text(isToday ? "TODAY" : " ")
                     .style(fontName: .player, fontSize: 10, fontColor: .white)
             }
-            
-            
         }
         .frame(maxWidth: .infinity)
     }

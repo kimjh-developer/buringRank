@@ -14,9 +14,10 @@ struct Data {
 }
 struct RecordDetail: View {
     @StateObject var vm = RecordDetailVM()
-    
+    @EnvironmentObject var workoutManager : WorkoutManager
     private let months = Array(1...12) // 1월부터 12월까지
     private let years = Array(2000...2100) // 2000년부터 2100년까지 선택 가능
+    
     
     var body: some View {
         ZStack {
@@ -37,35 +38,51 @@ struct RecordDetail: View {
                 datePopups()
             }
         }
+        .onAppear {
+            workoutManager.analyzeHeartRateZonesForTimePeriod(for: .weekly) {
+                print("done")
+            }
+            workoutManager.updateSummary(for: .heartRate, timePeriod: .weekly) {
+                print("요약 데이터: \(workoutManager.summaryArray ?? [])")
+            }
+            workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
+                print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
+            }
+
+        }
     }
     
     // MARK: - 요약
     @ViewBuilder
     private func summaryProgressBar() -> some View{
         VStack(alignment: .leading,spacing: 18) {
-            if let array = vm.summaryArray{
-                
+            if vm.selectSummaryType == .heartRate{
+                summaryRow(item: SummaryRow(summaryType: .heartRate, stack: nil, best: SummaryRowElement(Str: "이번주 최고", Updown: Int(workoutManager.ThismaxHeartRate ?? 0 - (workoutManager.LastmaxHeartRate ?? 0)), Value: workoutManager.ThismaxHeartRate)))
+                summaryRow(item: SummaryRow(summaryType: .heartRate, stack: nil, best: SummaryRowElement(Str: "지난주 최고", Value: workoutManager.LastmaxHeartRate)))
+            }else{
+                if let array = workoutManager.summaryArray{
                 ForEach(array.indices, id: \.self) { i in
-                    if i>0{
-                        line()
+                        if i>0{
+                            line()
+                        }
+                        summaryRow(item: array[i])
                     }
-                    summaryRow(item: array[i])
                 }
             }
             
             line()
             
-            if vm.selectSummaryType == .heatRate{
+            if vm.selectSummaryType == .heartRate{
                 Text("· 심박수 비중")
                     .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
                 VStack (spacing: 15){
-                    ForEach(vm.workoutProgressArray, id: \.self) { row in
+                    ForEach(workoutManager.workoutProgressArray, id: \.self) { row in
                         progressCell(item: row)
                     }
                 }
             }
             
-            if vm.selectSummaryType == .distance && vm.selectDateType == .WEEK{
+            if vm.selectSummaryType == .distance && vm.timePeriod == .weekly{
                 Button {
                     vm.isFreeMember.toggle()
                 } label: {
@@ -130,7 +147,6 @@ struct RecordDetail: View {
     @ViewBuilder
     private func summaryRow(item : SummaryRow) -> some View{
         VStack(spacing:15){
-            
             if let stack = item.stack{
                 var fontColor: Color {
                     if let stackValue = stack.Value, let bestValue = item.best?.Value {
@@ -138,18 +154,18 @@ struct RecordDetail: View {
                     }
                     return .white
                 }
-                    cellDetail(element: stack, measure: item.summaryCommon, fontColor: fontColor)
+                    cellDetail(element: stack, measure: item.summaryType, fontColor: fontColor)
                 }
             
             if let best = item.best{
-                cellDetail(element: best, measure: item.summaryCommon, fontColor: .white)
+                cellDetail(element: best, measure: item.summaryType, fontColor: .white)
             }
         }
     }
     
     // MARK: - 셀 뷰
     @ViewBuilder
-    private func cellDetail(element : SummaryRowElement,measure : SummaryCommon?,fontColor : Color) -> some View{
+    private func cellDetail(element : SummaryRowElement,measure : SummaryType?,fontColor : Color) -> some View{
         
         if let str = element.Str{
             HStack (alignment:.bottom){
@@ -163,7 +179,7 @@ struct RecordDetail: View {
                             Text(ival.addComma())
                                 .style(fontName: .player, fontSize: 20, fontColor: fontColor)
                             
-                                Text(vm.selectSummaryType.measure)
+                            Text(vm.selectSummaryType.element.measure ?? "")
                                     .style(fontName: .player, fontSize: 20, fontColor: .white)
                             
                         }
@@ -182,7 +198,7 @@ struct RecordDetail: View {
             Button {
                 vm.datePopupActivate.toggle()
             } label: {
-                if vm.selectDateType == .PERIOD{
+                if vm.timePeriod == .custom(startDate: nil, endDate: nil){
                     if let choosedDatas = vm.choosedDatas{
                         if choosedDatas.count>1{
                             Text("\(choosedDatas.first!.toString())~\(choosedDatas.first!.toString(format: "MM월 dd일"))")
@@ -197,7 +213,7 @@ struct RecordDetail: View {
                         .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
                     }
                 }else{
-                    Text(vm.selectDateType.formattedDateText(for: vm.chooseDate.first ?? Date()))
+                    Text(vm.timePeriod.formattedDateText(for: vm.chooseDate.first ?? Date()))
                         .style(fontName: .kmedium, fontSize: 18, fontColor: .white)
                 }
             }
@@ -276,43 +292,54 @@ struct RecordDetail: View {
     
     // MARK: - 기간선택
     @ViewBuilder
-    private func choosePeriods() -> some View{
+    private func choosePeriods() -> some View {
         HStack(spacing: 0) {
-            ForEach(DateType.allCases, id: \.self) { row in
-                let color = vm.selectDateType == row ? Color.black : Color.btnDisable
+            ForEach(TimePeriod.allCases, id: \.self) { row in
+                let color = vm.timePeriod == row ? Color.black : Color.btnDisable
                 Button {
-                    if !vm.isFreeMember{
-                        vm.selectDateType = row
+                    if !vm.isFreeMember {
+                        vm.timePeriod = row
                         vm.changeSummaryArray()
                     }
                 } label: {
                     ZStack {
-                        Text(row.name)
+                        Text(row.measure) // measure 속성 사용
                             .style(fontName: .player, fontSize: 15, fontColor: color)
                             .frame(maxWidth: .infinity)
-                            .padding(.vertical,10)
+                            .padding(.vertical, 10)
                             .background {
                                 ZStack {
-                                    if vm.selectDateType == row{
-                                        CustomRoundedRectangle(topLeft: row == .WEEK ? 5 : 0, topRight: row == .PERIOD ? 5 : 0, bottomLeft: row == .WEEK ? 5 : 0, bottomRight: row == .PERIOD ? 5 : 0)
-                                            .foregroundStyle(.white)
-                                    }
-                                    else{
-                                        CustomRoundedRectangle(topLeft: row == .WEEK ? 5 : 0, topRight: row == .PERIOD ? 5 : 0, bottomLeft: row == .WEEK ? 5 : 0, bottomRight: row == .PERIOD ? 5 : 0)
-                                            .stroke(.white, lineWidth: 1.0)
+                                    if vm.timePeriod == row {
+                                        CustomRoundedRectangle(
+                                            topLeft: row == .weekly ? 5 : 0,
+                                            topRight: row == .custom(startDate: nil, endDate: nil) ? 5 : 0,
+                                            bottomLeft: row == .weekly ? 5 : 0,
+                                            bottomRight: row == .custom(startDate: nil, endDate: nil) ? 5 : 0
+                                        )
+                                        .foregroundStyle(.white)
+                                    } else {
+                                        CustomRoundedRectangle(
+                                            topLeft: row == .weekly ? 5 : 0,
+                                            topRight: row == .custom(startDate: nil, endDate: nil) ? 5 : 0,
+                                            bottomLeft: row == .weekly ? 5 : 0,
+                                            bottomRight: row == .custom(startDate: nil, endDate: nil) ? 5 : 0
+                                        )
+                                        .stroke(.white, lineWidth: 1.0)
                                     }
                                 }
                             }
                         
-                        if vm.isFreeMember && row != .WEEK{
+                        if vm.isFreeMember && row != .weekly {
                             Image("icon_lock")
                         }
                     }
-                    
+
+
                 }
             }
         }
     }
+
     
     // MARK: - 기간선택
     @ViewBuilder
@@ -321,21 +348,29 @@ struct RecordDetail: View {
             line()
             HStack(spacing: 0) {
                 ForEach(SummaryType.allCases, id: \.self) { row in
-                    
-                    Button {
+                    Button(action: {
                         vm.selectSummaryType = row
                         vm.changeSummaryArray()
-                    } label: {
-                        ZStack(alignment:.bottom) {
-                            Text(row.name)
+                        workoutManager.analyzeHeartRateZonesForTimePeriod(for: .weekly) {
+//                            print("done")
+                        }
+                        workoutManager.updateSummary(for: row, timePeriod: .weekly) {
+//                            print("요약 데이터: \(workoutManager.summaryArray ?? [])")
+                        }
+                        workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
+//                            print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
+                        }
+                    }) {
+                        ZStack(alignment: .bottom) {
+                            Text(row.element.title)
                                 .style(fontName: .kmedium, fontSize: 15, fontColor: .white)
-                                .withUnderline(height: 5, color: row == vm.selectSummaryType ?  Color.themeRed : Color.clear)
+                                .withUnderline(height: 5, color: row == vm.selectSummaryType ? Color.themeRed : Color.clear)
                         }
                         .frame(maxWidth: .infinity)
-                        .padding(.vertical,10)
-                        
+                        .padding(.vertical, 10)
                     }
                 }
+
             }
             line()
         }
@@ -352,73 +387,73 @@ struct RecordDetail: View {
     
     // MARK: - 기간팝업
     @ViewBuilder
-    private func datePopups() -> some View{
+    private func datePopups() -> some View {
         ZStack {
             GeometryReader { proxy in
                 Color.black.opacity(0.5)
                     .onTapGesture {
                         vm.datePopupActivate = false
                     }
-                    
+
                 VStack {
                     Spacer()
-                    
+
                     VStack {
-                        switch vm.selectDateType {
-                        case .WEEK:
+                        switch vm.timePeriod {
+                        case .weekly:
                             EmptyView()
-                        case .MONTH:
+                        case .monthly:
                             VStack {
                                 Text("월 선택")
                                     .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
                                 HStack {
-                                                Spacer()
+                                    Spacer()
                                     Picker("월", selection: $vm.selectedMonth) {
-                                                    ForEach(months, id: \.self) { month in
-                                                        Text("\(month)월")
-                                                            .tag(month)
-                                                            .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
-                                                    }
-                                                }
-                                                .pickerStyle(WheelPickerStyle())
-                                                .frame(width: 150)
-                                                .clipped()
+                                        ForEach(months, id: \.self) { month in
+                                            Text("\(month)월")
+                                                .tag(month)
+                                                .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
+                                        }
+                                    }
+                                    .pickerStyle(WheelPickerStyle())
+                                    .frame(width: 150)
+                                    .clipped()
                                     Spacer()
                                     Picker("연도", selection: $vm.selectedYear) {
-                                                    ForEach(years, id: \.self) { year in
-                                                        Text("\(String(year))년")
-                                                            .tag(year)
-                                                            .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
-                                                    }
-                                                }
-                                                .pickerStyle(WheelPickerStyle())
-                                                .frame(width: 150)
-                                                .clipped()
-                                                Spacer()
-                                            }
+                                        ForEach(years, id: \.self) { year in
+                                            Text("\(String(year))년")
+                                                .tag(year)
+                                                .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
+                                        }
+                                    }
+                                    .pickerStyle(WheelPickerStyle())
+                                    .frame(width: 150)
+                                    .clipped()
+                                    Spacer()
+                                }
                             }
                             .padding(.vertical)
-                        case .YEAR:
+                        case .yearly:
                             VStack {
                                 Text("년 선택")
                                     .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
                                 HStack {
                                     Spacer()
                                     Picker("연도", selection: $vm.selectedYear) {
-                                                    ForEach(years, id: \.self) { year in
-                                                        Text("\(String(year))년")
-                                                            .tag(year)
-                                                            .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
-                                                    }
-                                                }
-                                                .pickerStyle(WheelPickerStyle())
-                                                .frame(width: 150)
-                                                .clipped()
-                                                Spacer()
-                                            }
+                                        ForEach(years, id: \.self) { year in
+                                            Text("\(String(year))년")
+                                                .tag(year)
+                                                .style(fontName: .kmedium, fontSize: 20, fontColor: .black)
+                                        }
+                                    }
+                                    .pickerStyle(WheelPickerStyle())
+                                    .frame(width: 150)
+                                    .clipped()
+                                    Spacer()
+                                }
                             }
                             .padding(.vertical)
-                        case .PERIOD:
+                        case .custom(let startDate, let endDate):
                             VStack {
                                 Text("기간 선택")
                                     .style(fontName: .kmedium, fontSize: 25, fontColor: .black)
@@ -426,8 +461,8 @@ struct RecordDetail: View {
                             }
                             .padding(.vertical)
                         }
-                        
-                        let buttonText = vm.selectDateType == .PERIOD && vm.choosedDatas != nil
+
+                        let buttonText = vm.timePeriod == .custom(startDate: nil, endDate: nil) && vm.choosedDatas != nil
                             ? (vm.choosedDatas!.count < 2
                                 ? vm.choosedDatas!.first!.toString()
                                 : "\(vm.choosedDatas!.first!.toString())~\(vm.choosedDatas!.last!.toString(format: "MM월 dd일"))")
@@ -436,11 +471,9 @@ struct RecordDetail: View {
                         Btn(defaultString: buttonText, fontsize: 20, fontcolor: .white, defaultColor: .black)
                             .padding(.horizontal)
                             .padding(.bottom)
-
-                        
                     }
                     .padding()
-                    .frame(height: vm.selectDateType == .PERIOD ? proxy.size.height*0.7 : proxy.size.height*0.35)
+                    .frame(height: vm.timePeriod == .custom(startDate: nil, endDate: nil) ? proxy.size.height * 0.7 : proxy.size.height * 0.35)
                     .frame(maxWidth: .infinity)
                     .background {
                         CustomRoundedRectangle(topLeft: 20, topRight: 20, bottomLeft: 0, bottomRight: 0)
@@ -451,6 +484,7 @@ struct RecordDetail: View {
         }
         .ignoresSafeArea()
     }
+
 }
 
 #Preview {

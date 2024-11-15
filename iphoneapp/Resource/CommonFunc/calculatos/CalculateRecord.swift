@@ -8,14 +8,14 @@
 import Foundation
 
 class CalculateRecord {
-    final func presumeRow(dtype: DateType, summaryType: SummaryType) -> [SummaryRow] {
+    final func presumeRow(dtype: TimePeriod, summaryType: SummaryType) -> [SummaryRow] {
         var rows: [SummaryRow] = []
         let titleMeasure = getTitleMeasure(for: dtype)
         let tails = getTails(for: summaryType)
         
         for tail in tails {
             let summaryRow = SummaryRow(
-                summaryCommon: guessSummaryRow(item: summaryType),
+                summaryType: guessSummaryRow(item: summaryType),
                 stack: SummaryRowElement(Str: "\(titleMeasure.this) \(tail)"),//\(summaryType.name)
                 best: SummaryRowElement(Str: "\(titleMeasure.past) \(tail)")//\(summaryType.name)
             )
@@ -24,13 +24,13 @@ class CalculateRecord {
         return rows
     }
     
-    private func guessSummaryRow(item:SummaryType)->SummaryCommon?{
+    private func guessSummaryRow(item:SummaryType)->SummaryType?{
         switch item {
-        case .heatRate:
+        case .heartRate:
             return nil
-        case .calories:
+        case .calorie:
             return .calorie
-        case .walkCount:
+        case .walk:
             return .walk
         case .distance:
             return .distance
@@ -39,22 +39,22 @@ class CalculateRecord {
         }
     }
     
-    private func getTitleMeasure(for dtype: DateType) -> TitleMeasure {
+    private func getTitleMeasure(for dtype: TimePeriod) -> TitleMeasure {
         switch dtype {
-        case .WEEK:
+        case .weekly:
             return TitleMeasure(this: "이번 주 ", past: "지난 주 ")
-        case .MONTH:
+        case .monthly:
             return TitleMeasure(this: "이번 달 ", past: "지난 달 ")
-        case .YEAR:
+        case .yearly:
             return TitleMeasure(this: "올해 ", past: "작년 ")
-        case .PERIOD:
+        case .custom:
             return TitleMeasure(this: "기간 내 ", past: "")
         }
     }
     
     private func getTails(for summaryType: SummaryType) -> [String] {
         switch summaryType {
-        case .heatRate:
+        case .heartRate:
             return ["최고"]
         case .face:
             return ["일평균", "최고"]
