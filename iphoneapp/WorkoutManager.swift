@@ -294,7 +294,6 @@ class WorkoutManager:NSObject,ObservableObject{
         fetchAndCompare(type: .distanceWalkingRunning, measureUnit: HKUnit.meterUnit(with: .kilo), summaryType: .distance)
         fetchAndCompare(type: .activeEnergyBurned, measureUnit: HKUnit.kilocalorie(), summaryType: .calorie)
     }
-
     
     func performComparisonForSelectedWeekday(weekday: Int) {
         print("i:\(weekday)")
@@ -338,7 +337,15 @@ class WorkoutManager:NSObject,ObservableObject{
 //        print("Updated workoutProgressArray: \(self.workoutProgressArray)")
     }
 
-    
+    func resetDatas(){
+        SummaryArray.removeAll()
+        summaryArray = nil
+        updownValue = nil
+        existWeeks.removeAll()
+        workoutProgressArray.removeAll()
+        ThismaxHeartRate = nil
+        LastmaxHeartRate = nil
+    }
 }
 
 
@@ -566,6 +573,20 @@ extension TimePeriod: CaseIterable {
         return [.weekly, .monthly, .yearly,.custom(startDate: nil, endDate: nil)]
     }
 }
+extension TimePeriod {
+    func isSameCase(as other: TimePeriod) -> Bool {
+        switch (self, other) {
+        case (.weekly, .weekly), (.monthly, .monthly), (.yearly, .yearly):
+            return true
+        case (.custom, .custom):
+            return true // 내부 값 무시
+        default:
+            return false
+        }
+    }
+}
+
+
 
 enum HeartRateZone: String {
     case below50 = "50% 이하"
@@ -578,6 +599,7 @@ enum HeartRateZone: String {
 extension WorkoutManager {
     /// 특정 기간(TimePeriod) 동안의 심박수 구간 분석
        func analyzeHeartRateZonesForTimePeriod(for timePeriod: TimePeriod, completion: @escaping () -> Void) {
+           self.resetDatas()
            guard let maxRate = maxHeartRate else {
                print("💀 maxHeartRate가 설정되지 않았습니다.")
                completion()
@@ -658,10 +680,11 @@ extension WorkoutManager {
             let end = calendar.date(byAdding: .year, value: 1, to: start) ?? now
             return (start, end)
         case .custom(let startDate, let endDate):
-            guard let startDate = startDate, let endDate = endDate else {
-                print("💀 Invalid custom date range: startDate or endDate is nil.")
-                return nil
-            }
+            let startDate = timePeriod.getDateRange().start
+              let endDate = timePeriod.getDateRange().end
+//                print("💀 Invalid custom date range: startDate or endDate is nil.")
+//                return nil
+//            }
             return (startDate, endDate)
         }
     }
@@ -729,40 +752,68 @@ extension WorkoutManager {
         let dailyAverage = totalValue / days
         let maxValue = samples.max(by: { $0.quantity.doubleValue(for: unit) < $1.quantity.doubleValue(for: unit) })?.quantity.doubleValue(for: unit) ?? 0
 
-        // 지난 기간 데이터 가져오기
-        let lastPeriodRange = timePeriod.getLastPeriodDateRange()
-        if let quantityType = type.toQuantityType(){
-            fetchWeeklyData(type: quantityType, start: lastPeriodRange.start, end: lastPeriodRange.end) { lastPeriodSamples in
-                let lastTotalValue = lastPeriodSamples?.reduce(0.0) { $0 + $1.quantity.doubleValue(for: unit) } ?? 0
-                let lastDays = Double(Calendar.current.dateComponents([.day], from: lastPeriodRange.start, to: lastPeriodRange.end).day! + 1)
-                let lastDailyAverage = lastTotalValue / lastDays
-                let lastMaxValue = lastPeriodSamples?.max(by: { $0.quantity.doubleValue(for: unit) < $1.quantity.doubleValue(for: unit) })?.quantity.doubleValue(for: unit) ?? 0
+        if case .custom = timePeriod {
+            // 과거 데이터 비교 없이 현재 데이터만 저장
+            DispatchQueue.main.async {
+                self.summaryArray = [
+                    SummaryRow(
+                        summaryType: type,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균", Updown: nil, Value: dailyAverage),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                    ),
+                    SummaryRow(
+                        summaryType: type,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고", Updown: nil, Value: maxValue),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                    ),
+                    SummaryRow(
+                        summaryType: type,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 누적", Updown: nil, Value: totalValue),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                    )
+                ]
+                print("PeriodsSummaryArray:\(self.summaryArray)")
+                completion()
+            }
+            return
+        }else{
+            // 지난 기간 데이터 가져오기
+            let lastPeriodRange = timePeriod.getLastPeriodDateRange()
+            if let quantityType = type.toQuantityType() {
+                fetchWeeklyData(type: quantityType, start: lastPeriodRange.start, end: lastPeriodRange.end) { lastPeriodSamples in
+                    let lastTotalValue = lastPeriodSamples?.reduce(0.0) { $0 + $1.quantity.doubleValue(for: unit) } ?? 0
+                    let lastDays = Double(Calendar.current.dateComponents([.day], from: lastPeriodRange.start, to: lastPeriodRange.end).day! + 1)
+                    let lastDailyAverage = lastTotalValue / lastDays
+                    let lastMaxValue = lastPeriodSamples?.max(by: { $0.quantity.doubleValue(for: unit) < $1.quantity.doubleValue(for: unit) })?.quantity.doubleValue(for: unit) ?? 0
 
-                DispatchQueue.main.async {
-                    self.summaryArray = [
-                        SummaryRow(
-                            summaryType: type,
-                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균", Updown: nil, Value: dailyAverage),
-                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 일평균", Updown: nil, Value: lastDailyAverage)
-                        ),
-                        SummaryRow(
-                            summaryType: type,
-                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고", Updown: nil, Value: maxValue),
-                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 최고", Updown: nil, Value: lastMaxValue)
-                        ),
-                        SummaryRow(
-                            summaryType: type,
-                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 누적", Updown: nil, Value: totalValue),
-                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 누적", Updown: nil, Value: lastTotalValue)
-                        )
-                    ]
-                    print("summaryArray:\(self.summaryArray)")
-                    completion()
+                    DispatchQueue.main.async {
+                        self.summaryArray = [
+                            SummaryRow(
+                                summaryType: type,
+                                stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균", Updown: nil, Value: dailyAverage),
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 일평균", Updown: nil, Value: lastDailyAverage)
+                            ),
+                            SummaryRow(
+                                summaryType: type,
+                                stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고", Updown: nil, Value: maxValue),
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 최고", Updown: nil, Value: lastMaxValue)
+                            ),
+                            SummaryRow(
+                                summaryType: type,
+                                stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 누적", Updown: nil, Value: totalValue),
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 누적", Updown: nil, Value: lastTotalValue)
+                            )
+                        ]
+                        print("summaryArray:\(self.summaryArray)")
+                        completion()
+                    }
                 }
             }
         }
+
         
     }
+
 
 }
 
@@ -777,29 +828,36 @@ extension WorkoutManager {
                 $0.quantity.doubleValue(for: HKUnit(from: "count/min")) < $1.quantity.doubleValue(for: HKUnit(from: "count/min"))
             })?.quantity.doubleValue(for: HKUnit(from: "count/min")) ?? 0
             
-            DispatchQueue.main.async {
-                self.ThismaxHeartRate = thisMax
-            }
+            
+            
             
             // custom 기간에서는 지난 최고 심박수 구하지 않음
             if case .custom = timePeriod {
-                self.LastmaxHeartRate = nil
-                completion()
-                return
-            }
-            
-            // 지난 기간의 최고 심박수 가져오기
-            guard let lastDateRange = self.getLastPeriodDateRange(for: timePeriod) else {return}
-            self.fetchWeeklyData(type: .heartRate, start: lastDateRange.start, end: lastDateRange.end) { lastPeriodSamples in
-                let lastMax = lastPeriodSamples?.max(by: {
-                    $0.quantity.doubleValue(for: HKUnit(from: "count/min")) < $1.quantity.doubleValue(for: HKUnit(from: "count/min"))
-                })?.quantity.doubleValue(for: HKUnit(from: "count/min")) ?? 0
-                
                 DispatchQueue.main.async {
-                    self.LastmaxHeartRate = lastMax
-                    completion()
+                        self.LastmaxHeartRate = nil
+                        completion()
+                        return
+                }
+            }else{
+                DispatchQueue.main.async {
+                    self.ThismaxHeartRate = thisMax
+                }
+                // 지난 기간의 최고 심박수 가져오기
+                guard let lastDateRange = self.getLastPeriodDateRange(for: timePeriod) else {return}
+                self.fetchWeeklyData(type: .heartRate, start: lastDateRange.start, end: lastDateRange.end) { lastPeriodSamples in
+                    let lastMax = lastPeriodSamples?.max(by: {
+                        $0.quantity.doubleValue(for: HKUnit(from: "count/min")) < $1.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                    })?.quantity.doubleValue(for: HKUnit(from: "count/min")) ?? 0
+                    
+                    DispatchQueue.main.async {
+                        self.LastmaxHeartRate = lastMax
+                        completion()
+                    }
                 }
             }
+            
+            
+            
         }
     }
     

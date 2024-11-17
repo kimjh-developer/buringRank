@@ -17,7 +17,7 @@ struct RecordDetail: View {
     @EnvironmentObject var workoutManager : WorkoutManager
     private let months = Array(1...12) // 1월부터 12월까지
     private let years = Array(2000...2100) // 2000년부터 2100년까지 선택 가능
-    
+    @State private var isLoading = false
     
     var body: some View {
         ZStack {
@@ -37,19 +37,26 @@ struct RecordDetail: View {
             if vm.datePopupActivate{
                 datePopups()
             }
+            if isLoading{
+                ProgressView("데이터 로딩중....")
+                    .progressViewStyle(CircularProgressViewStyle())
+                    .scaleEffect(1.5) // ProgressView 크기 조정
+                    .padding()
+            }
+            
         }
         .onAppear {
+            isLoading = true
             workoutManager.analyzeHeartRateZonesForTimePeriod(for: .weekly) {
-                print("done")
+                workoutManager.updateSummary(for: .heartRate, timePeriod: .weekly) {
+                    workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
+                        print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
+                        self.isLoading = false
+                    }
+                }
             }
-            workoutManager.updateSummary(for: .heartRate, timePeriod: .weekly) {
-                print("요약 데이터: \(workoutManager.summaryArray ?? [])")
-            }
-            workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
-                print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
-            }
-
         }
+        
     }
     
     // MARK: - 요약
@@ -295,11 +302,14 @@ struct RecordDetail: View {
     private func choosePeriods() -> some View {
         HStack(spacing: 0) {
             ForEach(TimePeriod.allCases, id: \.self) { row in
-                let color = vm.timePeriod == row ? Color.black : Color.btnDisable
+                let color = vm.timePeriod.isSameCase(as: row) ? Color.black : Color.btnDisable
+
                 Button {
                     if !vm.isFreeMember {
+                        self.isLoading = true
                         vm.timePeriod = row
-                        vm.changeSummaryArray()
+                        
+                        calculateDatas()
                     }
                 } label: {
                     ZStack {
@@ -309,7 +319,7 @@ struct RecordDetail: View {
                             .padding(.vertical, 10)
                             .background {
                                 ZStack {
-                                    if vm.timePeriod == row {
+                                    if vm.timePeriod.isSameCase(as: row) {
                                         CustomRoundedRectangle(
                                             topLeft: row == .weekly ? 5 : 0,
                                             topRight: row == .custom(startDate: nil, endDate: nil) ? 5 : 0,
@@ -350,16 +360,7 @@ struct RecordDetail: View {
                 ForEach(SummaryType.allCases, id: \.self) { row in
                     Button(action: {
                         vm.selectSummaryType = row
-                        vm.changeSummaryArray()
-                        workoutManager.analyzeHeartRateZonesForTimePeriod(for: .weekly) {
-//                            print("done")
-                        }
-                        workoutManager.updateSummary(for: row, timePeriod: .weekly) {
-//                            print("요약 데이터: \(workoutManager.summaryArray ?? [])")
-                        }
-                        workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
-//                            print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
-                        }
+                        calculateDatas()
                     }) {
                         ZStack(alignment: .bottom) {
                             Text(row.element.title)
@@ -467,10 +468,20 @@ struct RecordDetail: View {
                                 ? vm.choosedDatas!.first!.toString()
                                 : "\(vm.choosedDatas!.first!.toString())~\(vm.choosedDatas!.last!.toString(format: "MM월 dd일"))")
                             : "선택완료"
+                        Button {
+                            if let firstD = vm.choosedDatas?.first,
+                               let lastD = vm.choosedDatas?.last{
+                                vm.timePeriod = .custom(startDate: firstD, endDate: lastD)
+                                calculateDatas()
+                                vm.datePopupActivate = false
+                            }
+                        } label: {
+                            Btn(defaultString: buttonText, fontsize: 20, fontcolor: .white, defaultColor: .black)
+                                .padding(.horizontal)
+                                .padding(.bottom)
+                        }
 
-                        Btn(defaultString: buttonText, fontsize: 20, fontcolor: .white, defaultColor: .black)
-                            .padding(.horizontal)
-                            .padding(.bottom)
+                        
                     }
                     .padding()
                     .frame(height: vm.timePeriod == .custom(startDate: nil, endDate: nil) ? proxy.size.height * 0.7 : proxy.size.height * 0.35)
@@ -483,6 +494,22 @@ struct RecordDetail: View {
             }
         }
         .ignoresSafeArea()
+    }
+    
+    private func calculateDatas(){
+        isLoading = true
+        if vm.timePeriod == .custom(startDate: nil, endDate: nil){
+            workoutManager.resetDatas()
+            self.isLoading = false
+        }else{
+            workoutManager.analyzeHeartRateZonesForTimePeriod(for: vm.timePeriod) {
+                workoutManager.updateSummary(for: .heartRate, timePeriod: vm.timePeriod) {
+                    workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
+                        self.isLoading = false
+                    }
+                }
+            }
+        }
     }
 
 }
