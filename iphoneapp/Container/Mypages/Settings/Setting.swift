@@ -10,6 +10,8 @@ import SwiftUI
 struct Setting: View {
     @Environment(\.dismiss) var dismiss
     @State var pushActivate : Bool = true
+    
+    
     var body: some View {
         ZStack {
             Color.white
@@ -44,7 +46,9 @@ struct Setting: View {
                 moreview(title: "개인정보처리방침")
                 Spacer()
             }
+            
         }
+        
         .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
@@ -76,6 +80,8 @@ struct Setting: View {
         }
         
     }
+    
+    
 }
 
 #Preview {

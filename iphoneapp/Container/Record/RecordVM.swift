@@ -13,7 +13,8 @@ class RecordVM : ObservableObject{
     @Published var selectDay : Int?
     @Published var hearRate : Int?
     @Published var updownValue : Int?
-    @Published var isFreeMember : Bool = true
+    @Published var isFreeMember : Bool = false
+    @Published var moveToMap : Bool = false
     @Published var workoutProgressArray : Array<WorkoutProgress>=[
         WorkoutProgress(progressLevel : .level1, percentage: 10, time: "12:22:11"),
         WorkoutProgress(progressLevel : .level2, percentage: 15, time: "11:62:15"),
@@ -25,10 +26,12 @@ class RecordVM : ObservableObject{
     @Published var SummaryArray : Array<SummaryRow> = [
         SummaryRow(summaryType:.calorie,
                    stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
-                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
+                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542),
+                   duration: nil),
         SummaryRow(summaryType:.distance,
                    stack: SummaryRowElement(Str: "이번주 누적", Updown: 1234, Value: 5545),
-                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542)),
+                   best: SummaryRowElement(Str: "이번주 최고", Updown: 1234, Value: 6542),
+                   duration: nil),
         
     ]
     
@@ -61,7 +64,8 @@ class RecordVM : ObservableObject{
                             let newRow = SummaryRow(
                                 summaryType: summaryType,
                                 stack: SummaryRowElement(Str: "이번주 누적", Updown: Int(difference), Value: thisWeekTotal),
-                                best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek)
+                                best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek),
+                                duration: nil
                             )
                             if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
                                 self.SummaryArray[index] = newRow
@@ -123,6 +127,7 @@ struct SummaryRow:Equatable,Hashable {
     var summaryType : SummaryType?
     var stack : SummaryRowElement?
     var best : SummaryRowElement?
+    let duration: SummaryRowElement? // 운동 시간 추가
 }
 struct SummaryRowElement :Equatable,Hashable {
     var Str : String?
@@ -130,7 +135,7 @@ struct SummaryRowElement :Equatable,Hashable {
     var Value : Double?
 }
 enum SummaryType:CaseIterable{
-    case heartRate,calorie,walk,distance,face
+    case heartRate,calorie,walk,distance,face,workoutDuration
     var element : SummaryElement{
         switch self {
         case .heartRate:
@@ -142,7 +147,9 @@ enum SummaryType:CaseIterable{
         case .distance:
             return SummaryElement(title: "이동거리", measure: "km")
         case .face:
-            return SummaryElement(title: "페이스")
+            return SummaryElement(title: "페이스", measure: "km/min")
+        case .workoutDuration:
+            return SummaryElement(title: "운동 시간") // 운동 시간 설명 추가
         }
     }
     /// 각 SummaryType에 해당하는 HealthKit QuantityType 반환
@@ -156,7 +163,7 @@ enum SummaryType:CaseIterable{
                return .stepCount
            case .distance:
                return .distanceWalkingRunning
-           case .face:
+           case .face,.workoutDuration:
                return nil // Face 데이터는 별도의 처리가 필요하거나 미지원
            }
        }

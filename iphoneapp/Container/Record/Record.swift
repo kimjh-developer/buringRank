@@ -10,7 +10,7 @@ import SwiftUI
 struct Record: View {
     @EnvironmentObject var workoutManager : WorkoutManager
     private let weeks = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
-    private let thisDay = Date().dayOfWeek(locale: Locale(identifier: "en_US")).uppercased()
+    private let thisDay = Date().dayOfWeek(locale: Locale(identifier: "ko_kr")).uppercased()
     @StateObject var vm = RecordVM()
     
     var body: some View {
@@ -64,6 +64,7 @@ struct Record: View {
                 
                 summarys()
             }
+            
         }
         .padding()
         .onAppear {
@@ -82,8 +83,8 @@ struct Record: View {
                     }
                     
                     if row.summaryType == .distance{
-                        Button {
-                            vm.isFreeMember.toggle()
+                        NavigationLink {
+                            MapRecord()
                         } label: {
                             HStack {
                                 ZStack {
@@ -100,7 +101,6 @@ struct Record: View {
                                                     .foregroundStyle(.white)
                                             }
                                         }
-                                    
                                     if vm.isFreeMember{
                                         Image("icon_lock")
                                             .resizable()
@@ -136,7 +136,7 @@ struct Record: View {
     @ViewBuilder
     private func cellDetail(element : SummaryRowElement,measure : SummaryType?) -> some View{
         HStack (alignment:.bottom){
-            Text("· \(vm.selectDay==nil ? element.Str ?? "" : "오늘 누적")")
+            Text("· \(vm.selectDay==nil ? element.Str ?? "" : element.Str ?? "")")
                 .style(fontName: .kmedium, fontSize: 20, fontColor: .white)
             Spacer()
             HStack(spacing: 0) {

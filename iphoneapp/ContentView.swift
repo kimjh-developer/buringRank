@@ -10,6 +10,7 @@ import HealthKit
 
 struct ContentView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
+    
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
     @State private var moveNext : Bool = false
     var body: some View {
@@ -31,6 +32,8 @@ struct ContentView: View {
             }
             .onAppear {
                 workoutManager.requestAuthorization()
+               
+                
             }
             .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
                 if newValue == true{
@@ -38,16 +41,25 @@ struct ContentView: View {
                     }
             }
             .alert(isPresented: $workoutManager.AuthoriseWarn){
-                    Alert(title: Text("권한설정"),
-                          message: Text("버닝랭크를 사용하기위해 운동정보를 허용해 주세요"),
-                          dismissButton: .default(Text("확인"), action: {
+                Alert(
+                    title: Text("권한 필요"),
+                    message: Text("운동 경로 데이터를 가져오려면 권한이 필요합니다. 설정에서 권한을 활성화하세요."),
+                    primaryButton: .default(Text("설정 열기"), action: openAppSettings),
+                    secondaryButton:  .default(Text("바로 사용"), action: {
                         moveNext.toggle()
-                    }))
+                    })
+                )
             }
         }
         .ignoresSafeArea() // 전체 화면 사용
         .navigationDestination(isPresented: $moveNext) {
             Container()
+        }
+    }
+    
+    func openAppSettings() {
+        if let url = URL(string: UIApplication.openSettingsURLString) {
+            UIApplication.shared.open(url, options: [:], completionHandler: nil)
         }
     }
 }

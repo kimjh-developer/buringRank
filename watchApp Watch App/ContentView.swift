@@ -13,6 +13,7 @@ struct ContentView: View {
         WatchAppHome()
             .onAppear {
                 workoutManager.requestAuthorization()
+                workoutManager.requestLocationAuthorization()
             }
     }
 }

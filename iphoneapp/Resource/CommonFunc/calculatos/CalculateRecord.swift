@@ -17,7 +17,8 @@ class CalculateRecord {
             let summaryRow = SummaryRow(
                 summaryType: guessSummaryRow(item: summaryType),
                 stack: SummaryRowElement(Str: "\(titleMeasure.this) \(tail)"),//\(summaryType.name)
-                best: SummaryRowElement(Str: "\(titleMeasure.past) \(tail)")//\(summaryType.name)
+                best: SummaryRowElement(Str: "\(titleMeasure.past) \(tail)"),
+                duration: nil
             )
             rows.append(summaryRow)
         }
@@ -26,7 +27,7 @@ class CalculateRecord {
     
     private func guessSummaryRow(item:SummaryType)->SummaryType?{
         switch item {
-        case .heartRate:
+        case .heartRate,.workoutDuration:
             return nil
         case .calorie:
             return .calorie

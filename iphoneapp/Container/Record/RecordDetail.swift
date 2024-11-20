@@ -47,25 +47,38 @@ struct RecordDetail: View {
         }
         .onAppear {
             isLoading = true
-            workoutManager.analyzeHeartRateZonesForTimePeriod(for: .weekly) {
-                workoutManager.updateSummary(for: .heartRate, timePeriod: .weekly) {
-                    workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
-                        print("이번 주 최고 심박수: \(workoutManager.ThismaxHeartRate ?? 0) BPM")
-                        self.isLoading = false
-                    }
-                }
-            }
+            loadData(for: .weekly)
         }
         
     }
+    
+    // 비동기 작업을 별도의 함수로 분리
+    private func loadData(for period: TimePeriod) {
+        isLoading = true
+        workoutManager.analyzeHeartRateZonesForTimePeriod(for: period) { [self] in
+            self.workoutManager.updateSummary(for: .heartRate, timePeriod: period) {
+                self.workoutManager.updateMaxHeartRates(for: self.vm.timePeriod) {
+                    print("이번 주 최고 심박수: \(self.workoutManager.ThismaxHeartRate ?? 0) BPM")
+                    self.isLoading = false
+                }
+            }
+        }
+    }
+
     
     // MARK: - 요약
     @ViewBuilder
     private func summaryProgressBar() -> some View{
         VStack(alignment: .leading,spacing: 18) {
             if vm.selectSummaryType == .heartRate{
-                summaryRow(item: SummaryRow(summaryType: .heartRate, stack: nil, best: SummaryRowElement(Str: "이번주 최고", Updown: Int(workoutManager.ThismaxHeartRate ?? 0 - (workoutManager.LastmaxHeartRate ?? 0)), Value: workoutManager.ThismaxHeartRate)))
-                summaryRow(item: SummaryRow(summaryType: .heartRate, stack: nil, best: SummaryRowElement(Str: "지난주 최고", Value: workoutManager.LastmaxHeartRate)))
+                summaryRow(item: SummaryRow(summaryType: .heartRate,
+                                            stack: nil,
+                                            best: SummaryRowElement(Str: "이번주 최고", Updown: Int(workoutManager.ThismaxHeartRate ?? 0 - (workoutManager.LastmaxHeartRate ?? 0)), Value: workoutManager.ThismaxHeartRate),
+                                            duration: nil))
+                summaryRow(item: SummaryRow(summaryType: .heartRate,
+                                            stack: nil,
+                                            best: SummaryRowElement(Str: "지난주 최고", Value: workoutManager.LastmaxHeartRate),
+                                            duration: nil))
             }else{
                 if let array = workoutManager.summaryArray{
                 ForEach(array.indices, id: \.self) { i in
@@ -89,38 +102,38 @@ struct RecordDetail: View {
                 }
             }
             
-            if vm.selectSummaryType == .distance && vm.timePeriod == .weekly{
-                Button {
-                    vm.isFreeMember.toggle()
-                } label: {
-                    HStack {
-                        ZStack {
-                            Text("이동 경로 보기")
-                                .style(fontName: .kmedium, fontSize: 20, fontColor: vm.isFreeMember ? Color.btnDisable : .black)
-                                .padding(.horizontal)
-                                .padding(.vertical,10)
-                                .background {
-                                    if vm.isFreeMember{
-                                        RoundedRectangle(cornerRadius: 50)
-                                            .stroke(.white, lineWidth: 2)
-                                    }else{
-                                        RoundedRectangle(cornerRadius: 50)
-                                            .foregroundStyle(.white)
-                                    }
-                                }
-                            
-                            if vm.isFreeMember{
-                                Image("icon_lock")
-                                    .resizable()
-                                    .aspectRatio(contentMode: .fit)
-                                    .frame(width: 17)
-                            }
-                        }
-                        .frame(maxWidth: .infinity,alignment: .center)
-                        
-                    }
-                }
-            }
+//            if vm.selectSummaryType == .distance && vm.timePeriod == .weekly{
+//                Button {
+//                    vm.isFreeMember.toggle()
+//                } label: {
+//                    HStack {
+//                        ZStack {
+//                            Text("이동 경로 보기")
+//                                .style(fontName: .kmedium, fontSize: 20, fontColor: vm.isFreeMember ? Color.btnDisable : .black)
+//                                .padding(.horizontal)
+//                                .padding(.vertical,10)
+//                                .background {
+//                                    if vm.isFreeMember{
+//                                        RoundedRectangle(cornerRadius: 50)
+//                                            .stroke(.white, lineWidth: 2)
+//                                    }else{
+//                                        RoundedRectangle(cornerRadius: 50)
+//                                            .foregroundStyle(.white)
+//                                    }
+//                                }
+//                            
+//                            if vm.isFreeMember{
+//                                Image("icon_lock")
+//                                    .resizable()
+//                                    .aspectRatio(contentMode: .fit)
+//                                    .frame(width: 17)
+//                            }
+//                        }
+//                        .frame(maxWidth: .infinity,alignment: .center)
+//                        
+//                    }
+//                }
+//            }
         }
         .frame(maxWidth: .infinity,alignment: .leading)
     }
@@ -227,40 +240,50 @@ struct RecordDetail: View {
             ZStack {
                 GeometryReader { proxy in
                     Color.clear
-                    Chart(vm.data, id: \.date) { point in
-                        LineMark(
-                            x: .value("Date", point.date),
-                            y: .value("Value", point.value)
-                        )
-                        .foregroundStyle(.red)
-                        .symbol {
-                            Circle() // 심볼로 원 사용
-                                .strokeBorder(.white, lineWidth: 1.5) // 외곽선 빨간색
-                                .background(Circle().foregroundColor(Color.themeRed)) // 내부 흰색
-                                .frame(width: 8)
+                    let sortedData = workoutManager.chartData.sorted(by: { $0.date < $1.date })
+                    
+                    if let firstDate = sortedData.first?.date,
+                       let lastDate = sortedData.last?.date {
+                        Chart(sortedData, id: \.date) { point in
+                            LineMark(
+                                x: .value("Date", point.date),
+                                y: .value("Value", point.value)
+                            )
+                            .foregroundStyle(.red)
+                            .symbol {
+                                Circle() // 심볼로 원 사용
+                                    .strokeBorder(.white, lineWidth: 1.5) // 외곽선 빨간색
+                                    .background(Circle().foregroundColor(.red)) // 내부 흰색
+                                    .frame(width: 8)
+                            }
+                            .offset(x: proxy.size.width / CGFloat(sortedData.count * 2))
                         }
-                        .offset(x: proxy.size.width / CGFloat(vm.data.count * 2))
-                    }
-                    .chartXScale(domain: vm.data.first!.date...Calendar.current.date(byAdding: .day, value: 1, to: vm.data.last!.date)!)
-                    .chartXAxis {
-                        AxisMarks(values: strideDates(data: vm.data)) { value in
-                            if let date = value.as(Date.self) {
-                                AxisGridLine().foregroundStyle(.white) // 세로선 흰색 설정
-                                AxisValueLabel(centered:true) {
-                                    Text(date, formatter: DateFormatter.koreanMonthDay) // 한글 형식 날짜 표시
-                                        .style(fontName: .player, fontSize: 12, fontColor: .white)
+                        .chartXScale(domain: firstDate...Calendar.current.date(byAdding: .day, value: 1, to: lastDate)!)
+                        .chartXAxis {
+                            AxisMarks(values: strideDates(data: sortedData)) { value in
+                                if let date = value.as(Date.self) {
+                                    AxisGridLine().foregroundStyle(.white) // 세로선 흰색 설정
+                                    AxisValueLabel(centered: true) {
+                                        Text(date, formatter: DateFormatter.koreanMonthDay) // 한글 형식 날짜 표시
+                                            .style(fontName: .player, fontSize: 12, fontColor: .white)
+                                    }
                                 }
                             }
                         }
-                    }
-                    .chartYAxis{
-                        AxisMarks { value in
-                            AxisGridLine(stroke: .init(lineWidth: 1.0, dash: [2.0])) // 가로선 표시
-                                .foregroundStyle(.white)
-                            
+                        .chartYAxis {
+                            AxisMarks { value in
+                                AxisGridLine(stroke: StrokeStyle(lineWidth: 1.0, dash: [2.0])) // 가로선 표시
+                                    .foregroundStyle(.white)
+                            }
                         }
+                    } else {
+                        Text("데이터가 없습니다.")
+                            .foregroundColor(.white)
                     }
                 }
+
+
+
                 
             }
             .frame(height: 140)
@@ -503,7 +526,7 @@ struct RecordDetail: View {
             self.isLoading = false
         }else{
             workoutManager.analyzeHeartRateZonesForTimePeriod(for: vm.timePeriod) {
-                workoutManager.updateSummary(for: .heartRate, timePeriod: vm.timePeriod) {
+                workoutManager.updateSummary(for: vm.selectSummaryType, timePeriod: vm.timePeriod) {
                     workoutManager.updateMaxHeartRates(for: vm.timePeriod) {
                         self.isLoading = false
                     }

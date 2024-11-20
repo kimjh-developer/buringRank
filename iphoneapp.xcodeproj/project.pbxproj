@@ -389,8 +389,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iphoneapp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "사용자의 운동기록을 저장하기위해 필요합니다";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,8 +432,11 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = iphoneapp/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
-				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
-				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "사용자의 운동기록을 저장하기위해 필요합니다";
+				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

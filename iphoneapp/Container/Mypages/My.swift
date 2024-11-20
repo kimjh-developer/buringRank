@@ -9,6 +9,8 @@ import SwiftUI
 
 struct My: View {
     @StateObject var vm = MyVM()
+    @EnvironmentObject var workoutManager : WorkoutManager
+    let timePeriod = TimePeriod.custom(startDate: Date(), endDate: Date())
     var body: some View {
         ZStack {
             Color.white
@@ -48,10 +50,17 @@ struct My: View {
                                 .aspectRatio(contentMode: .fill)
                                 .frame(maxWidth: .infinity)
                             VStack(spacing: 20) {
-                                summaryRow(info: MysummaryInfo(title: "운동 시간", value: "06 : 25 : 55"))
-                                summaryRow(info: MysummaryInfo(title: "심박수", value: "158",updownValue: 125,measure: "BPM"))
-                                summaryRow(info: MysummaryInfo(title: "이동 거리", value: "1,125",updownValue: 1210,measure: "M"))
-                                summaryRow(info: MysummaryInfo(title: "소모 칼로리", value: "1,255",updownValue: 376,measure: "KCAL"))
+                                summaryRow(info: MysummaryInfo(title: "운동 시간", value: vm.workoutTime ?? ""))
+                                if let row = vm.SummaryArray.first(where: { $0.summaryType == .heartRate }) {
+                                    summaryRow(info: MysummaryInfo(title: "심박수", value: "\(Int(row.best?.Value ?? 0))",  measure: "BPM"))
+                                }
+                                if let row = vm.SummaryArray.first(where: { $0.summaryType == .distance }) {
+                                    summaryRow(info: MysummaryInfo(title: "이동 거리", value: "\(Int(row.best?.Value ?? 0))",measure: "KM"))
+                                }
+                                if let row = vm.SummaryArray.first(where: { $0.summaryType == .calorie }) {
+                                    summaryRow(info: MysummaryInfo(title: "소모 칼로리", value: "\(Int(row.stack?.Value ?? 0))",measure: "KCAL"))
+                                }
+                                
                             }
                             .padding()
                         }
@@ -82,6 +91,9 @@ struct My: View {
 
                     }
                 }
+                .onAppear(perform: {
+                    vm.getTodayData()
+                })
                 NavigationLink {
                     Grades()
                 } label: {
@@ -92,6 +104,7 @@ struct My: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom)
+            
         }
         
     }
@@ -139,6 +152,18 @@ struct My: View {
         }
             .frame(maxWidth: .infinity,alignment: .leading)
             .padding()
+    }
+    
+    private func calculateDatas(){
+        
+//        workoutManager.analyzeHeartRateZonesForTimePeriod(for: timePeriod) {
+//            workoutManager.updateSummary(for: .heartRate, timePeriod: timePeriod) {
+//                    workoutManager.updateMaxHeartRates(for: timePeriod) {
+//                        print("done")
+//                    }
+//                }
+//            }
+        
     }
 }
 

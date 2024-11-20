@@ -29,6 +29,7 @@ struct MatrixView: View {
         .navigationBarBackButtonHidden()
         .onAppear(perform: {
             if let selectedWorkout = workoutManager.selectedWorkout{
+                print("selectedWorkout:\(selectedWorkout)")
                 workoutManager.startWorkout(workoutType: selectedWorkout)
             }
         })

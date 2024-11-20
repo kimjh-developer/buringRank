@@ -7,7 +7,8 @@
 
 import Foundation
 import HealthKit
-
+import AVFoundation // AVFoundation 임포트 필요
+import CoreLocation
 class WorkoutManager:NSObject,ObservableObject{
     var healthStore = HKHealthStore()
     @Published var selectedWorkout : HKWorkoutActivityType?
@@ -47,20 +48,26 @@ class WorkoutManager:NSObject,ObservableObject{
     
     @Published var selectDay : Int?
     
+    private var locationManager: CLLocationManager?
+
+    @Published var routeLocations: [CLLocation] = []
+    
     
     let typesToShare: Set = [
-        HKQuantityType.workoutType(),
+        
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
         HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
         HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-        
+        HKQuantityType.workoutType(),
+        HKSeriesType.workoutRoute()
     ]
     
     // The quantity types to read from the health store.
     let typesToRead: Set = [
+        
         HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
         HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
@@ -71,7 +78,9 @@ class WorkoutManager:NSObject,ObservableObject{
         HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-        HKObjectType.activitySummaryType()
+        HKObjectType.activitySummaryType(),
+        HKWorkoutType.workoutType(), // Workout 읽기 권한 추가
+        HKSeriesType.workoutRoute()
     ]
     
     func startWorkout(workoutType: HKWorkoutActivityType) {
@@ -83,7 +92,12 @@ class WorkoutManager:NSObject,ObservableObject{
         
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
-        configuration.locationType = .outdoor
+        if workoutType == .functionalStrengthTraining || workoutType == .mindAndBody{
+            configuration.locationType =  .indoor
+        }else{
+            configuration.locationType =  .outdoor
+        }
+        
         
         do {
             session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
@@ -100,8 +114,8 @@ class WorkoutManager:NSObject,ObservableObject{
             // 세션 시작
             let startDate = Date()
             session?.startActivity(with: startDate)
-            
-            
+            startLocationUpdates()
+//            self.announceWorkoutStart(workoutType: workoutType)
             self.builder?.beginCollection(withStart: startDate) { (success, error) in
                 if let error = error {
                     print("💀 Failed to start data collection: \(error.localizedDescription)")
@@ -216,12 +230,15 @@ class WorkoutManager:NSObject,ObservableObject{
         session?.end()
     }
     
+    // 새로운 함수 추가: 음성 안내를 위해
+    func announceWorkoutStart(workoutType: HKWorkoutActivityType) {
+        let synthesizer = AVSpeechSynthesizer()
+        let speechUtterance = AVSpeechUtterance(string: "버닝랭크를 시작합니다")
+        speechUtterance.voice = AVSpeechSynthesisVoice(language: "ko-KR") // 한국어 음성 설정
+        synthesizer.speak(speechUtterance)
+    }
+    
 }
-
-
-
-
-
 extension WorkoutManager : HKWorkoutSessionDelegate{
     
     func workoutSession(_ workoutSession: HKWorkoutSession, didFailWithError error: Error) {
@@ -284,14 +301,36 @@ extension WorkoutManager : HKWorkoutSessionDelegate{
                 DispatchQueue.main.async{
                     self.workout = workout
                     print("✅ Workout finished successfully.")
+                    self.saveWorkoutRoute(workout: workout) // 경로 저장
                 }
+                self.stopLocationUpdates() // 위치 추적 중지
                 // 필요시 추가적으로 세션 초기화
 //                self.resetWorkoutSession()
             }
         }
     }
-}
+    
+    private func saveWorkoutRoute(workout: HKWorkout?) {
+        guard let workout = workout else { return }
 
+        let routeBuilder = HKWorkoutRouteBuilder(healthStore: healthStore, device: nil)
+        routeBuilder.insertRouteData(routeLocations) { success, error in
+            if let error = error {
+                print("💀 Failed to save route: \(error.localizedDescription)")
+            } else {
+                print("📍 Route data saved successfully.")
+            }
+        }
+
+        routeBuilder.finishRoute(with: workout, metadata: nil) { route, error in
+            if let error = error {
+                print("💀 Error finishing route: \(error.localizedDescription)")
+            } else {
+                print("📍 Workout route saved: \(String(describing: route))")
+            }
+        }
+    }
+}
 
 extension WorkoutManager : HKLiveWorkoutBuilderDelegate{
     func workoutBuilderDidCollectEvent(_ workoutBuilder: HKLiveWorkoutBuilder) {
@@ -305,4 +344,31 @@ extension WorkoutManager : HKLiveWorkoutBuilderDelegate{
             updateForStatistics(statistics)
         }
     }
+}
+
+extension WorkoutManager : CLLocationManagerDelegate{
+    func requestLocationAuthorization() {
+        locationManager = CLLocationManager()
+        locationManager?.delegate = self
+        locationManager?.desiredAccuracy = kCLLocationAccuracyBest
+        locationManager?.distanceFilter = 10 // 최소 거리 필터
+        locationManager?.requestWhenInUseAuthorization()
+    }
+    
+    func startLocationUpdates() {
+            locationManager?.startUpdatingLocation()
+        }
+
+        func stopLocationUpdates() {
+            locationManager?.stopUpdatingLocation()
+        }
+
+        func locationManager(_ manager: CLLocationManager, didUpdateLocations locations: [CLLocation]) {
+            routeLocations.append(contentsOf: locations)
+            print("📍 Locations updated: \(locations.count) new points")
+        }
+
+        func locationManager(_ manager: CLLocationManager, didFailWithError error: Error) {
+            print("💀 Location update failed: \(error.localizedDescription)")
+        }
 }

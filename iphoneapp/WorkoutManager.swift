@@ -8,7 +8,7 @@
 
 import Foundation
 import HealthKit
-
+import CoreLocation
 class WorkoutManager:NSObject,ObservableObject{
     let healthStore = HKHealthStore()
     @Published var selectedWorkout : HKWorkoutActivityType?
@@ -24,43 +24,81 @@ class WorkoutManager:NSObject,ObservableObject{
     @Published var workoutProgressArray : Array<WorkoutProgress>=[]
     @Published var ThismaxHeartRate : Double?
     @Published var LastmaxHeartRate : Double?
-    let typesToRead: Set = [
-        HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
-        HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
+    @Published var chartData: [DValue] = []
+    @Published var locations: [CLLocation] = []
+    
+    let typesToShare: Set<HKSampleType> = [
+        
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
         HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
         HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-        HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
-        HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
+//        HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+//        HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-        HKObjectType.activitySummaryType()
+//        HKObjectType.workoutType(),
+//        HKSeriesType.workoutRoute()
     ]
-    
+    // 읽기 권한
+    let typesToRead: Set = [
+           HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
+           HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
+           HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+           HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+           HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+//           HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+//           HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+//           HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
+           HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
+           HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
+           HKObjectType.activitySummaryType(),
+//           HKObjectType.workoutType(),
+//           HKSeriesType.workoutRoute()
+       ]
+       
+    // MARK: - 권한 요청
     func requestAuthorization() {
         // 공유 권한(toShare)은 nil로 설정하여 무시하고 읽기 권한만 요청
-        healthStore.requestAuthorization(toShare: nil, read: typesToRead) { success, error in
+        
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if success {
+                
                 DispatchQueue.main.async {
+                    
                     // 읽기 권한만 확인
                     var allPermissionsGranted = true
-                    
+                    var typesToRequest = Set<HKObjectType>()
                     for type in self.typesToRead {
                         // 읽기 권한만 로그로 출력
                         let status = self.healthStore.authorizationStatus(for: type)
                         
                         switch status {
-                        case .sharingAuthorized,.sharingDenied:
+                        case .sharingAuthorized:
                             print("\(type.identifier): Reading Authorized") // 읽기 권한만 표시
+                        case .sharingDenied:
+                            print("\(type.identifier): Reading sharingDenied") // 읽기 권한만 표시
                         case  .notDetermined:
-                            print("\(type.identifier): Reading Denied or Not Determined")
-                            allPermissionsGranted = false
+                            print("\(type.identifier):  Not Determined")
+                            typesToRequest.insert(type)
+//                            allPermissionsGranted = false
                         @unknown default:
                             print("\(type.identifier): Unknown Status")
                             allPermissionsGranted = false
                         }
                     }
+                    
+                    if !typesToRequest.isEmpty {
+                        self.healthStore.requestAuthorization(toShare: nil, read: typesToRequest) { success, error in
+                                if success {
+                                    print("권한 요청 성공")
+                                } else {
+                                    print("권한 요청 실패: \(error?.localizedDescription ?? "알 수 없는 오류")")
+                                }
+                            }
+                        } else {
+                            print("모든 권한이 이미 설정되어 있습니다.")
+                        }
                     
                     if allPermissionsGranted {
                         DispatchQueue.main.asyncAfter(deadline: .now()+2.0){
@@ -74,6 +112,7 @@ class WorkoutManager:NSObject,ObservableObject{
                     }
                 }
             } else {
+                
                 DispatchQueue.main.async {
                     self.AuthoriseWarn = true
                 }
@@ -82,16 +121,35 @@ class WorkoutManager:NSObject,ObservableObject{
         }
     }
     
-    func getStartAndEndOfWeek() -> (start: Date, end: Date) {
-        var calendar = Calendar.current
-        calendar.firstWeekday = 2
-        let now = Date()
+    // MARK: - 권한 상태 확인
+    private func checkAuthorizationStatus() {
+        var allPermissionsGranted = true
         
-        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
-        let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek) ?? now
-        return (startOfWeek, endOfWeek)
+        for type in typesToRead {
+            let status = healthStore.authorizationStatus(for: type)
+            switch status {
+            case .sharingAuthorized:
+                print("\(type.identifier): Reading Authorized")
+            case .sharingDenied:
+                print("\(type.identifier): Reading Denied")
+                allPermissionsGranted = false
+            case .notDetermined:
+                print("\(type.identifier): Not Determined")
+                allPermissionsGranted = false
+            @unknown default:
+                print("\(type.identifier): Unknown Status")
+                allPermissionsGranted = false
+            }
+        }
+        
+        if allPermissionsGranted {
+            print("✅ 모든 권한이 허용되었습니다.")
+            self.AuthorizationFullyGranted = true
+        } else {
+            print("❌ 일부 권한이 허용되지 않았습니다.")
+            self.AuthoriseWarn = true
+        }
     }
-    
     // Fetch user's age and height
     func fetchUserData() {
         do {
@@ -106,8 +164,22 @@ class WorkoutManager:NSObject,ObservableObject{
         }
     }
     
+    func getStartAndEndOfWeek() -> (start: Date, end: Date) {
+        var calendar = Calendar.current
+        calendar.firstWeekday = 2
+        let now = Date()
+        
+        let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: now)?.start ?? now
+        let endOfWeek = calendar.date(byAdding: .day, value: 7, to: startOfWeek) ?? now
+        return (startOfWeek, endOfWeek)
+    }
+    
+    
+    
     func getWeekData() {
-        guard let maxRate = maxHeartRate else{print("💀maxHeartRate : \(maxHeartRate)");return}
+        guard let maxRate = maxHeartRate else{
+            print("💀maxHeartRate : \(String(describing: maxHeartRate))")
+            return}
         let workoutmanager = WorkoutManager()
         
         // 현재 주의 시작과 끝 날짜
@@ -128,16 +200,16 @@ class WorkoutManager:NSObject,ObservableObject{
                         print("이번 주 \(summaryType.element.title) 데이터가 없습니다.")
                         return
                     }
-
+                    
                     let thisWeekTotal = thisWeekSamples.reduce(0) {
                         $0 + $1.quantity.doubleValue(for: measureUnit)
                     }
-
+                    
                     // 이번 주 최고 심박수 계산
                     let maxThisWeek = thisWeekSamples.max(by: {
                         $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
                     })?.quantity.doubleValue(for: measureUnit) ?? 0
-
+                    
                     // 이번 주 요일별 데이터 수집
                     thisWeekSamples.forEach { sample in
                         let dateFormatter = DateFormatter()
@@ -149,14 +221,15 @@ class WorkoutManager:NSObject,ObservableObject{
                             }
                         }
                     }
-
+                    
                     let difference = thisWeekTotal - lastWeekTotal
-
+                    
                     DispatchQueue.main.async {
                         let newRow = SummaryRow(
                             summaryType: summaryType,
                             stack: SummaryRowElement(Str: "이번주 누적", Updown: Int(difference), Value: thisWeekTotal),
-                            best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek)
+                            best: SummaryRowElement(Str: "이번주 최고", Updown: nil, Value: maxThisWeek),
+                            duration: nil
                         )
                         if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
                             self.SummaryArray[index] = newRow
@@ -172,8 +245,8 @@ class WorkoutManager:NSObject,ObservableObject{
                 }
             }
         }
-
-
+        
+        
         
         // Fetch and compare for walk, calorie, and distance
         fetchAndCompare(type: .heartRate, measureUnit: HKUnit(from: "count/min"), summaryType: .heartRate)
@@ -190,15 +263,15 @@ class WorkoutManager:NSObject,ObservableObject{
     }
     
     func getMaxHeartRate() -> Double? {
-            // SummaryArray에서 summaryType이 .heartRate인 항목 찾기
-            guard let heartRateSummary = SummaryArray.first(where: { $0.summaryType == .heartRate }) else {
-                print("💀 SummaryArray에 heartRate 데이터가 없습니다.")
-                return nil
-            }
-            
-            // 최고값 반환
-            return heartRateSummary.best?.Value
+        // SummaryArray에서 summaryType이 .heartRate인 항목 찾기
+        guard let heartRateSummary = SummaryArray.first(where: { $0.summaryType == .heartRate }) else {
+            print("💀 SummaryArray에 heartRate 데이터가 없습니다.")
+            return nil
         }
+        
+        // 최고값 반환
+        return heartRateSummary.best?.Value
+    }
     
     //지정일자에 데이터를 구함
     func getStartOfWeek(for date: Date) -> Date {
@@ -272,22 +345,39 @@ class WorkoutManager:NSObject,ObservableObject{
                             self.updownValue = Int(difference)
                         }
                         
-                        let newRow = SummaryRow(
-                            summaryType: summaryType,
-                            stack: SummaryRowElement(Str: "\(calendar.component(.month, from: date))월 \(calendar.component(.day, from: date))일 최고", Updown: Int(difference), Value: maxThisDay),
-                            best: SummaryRowElement(Str: "지난주 최고", Updown: nil, Value: maxLastWeek)
-                        )
-                        
-                        if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
-                            self.SummaryArray[index] = newRow
-                        } else {
-                            self.SummaryArray.append(newRow)
+                        // 현재 날짜에서 일주일 전 날짜 계산
+                        if let oneWeekAgo = calendar.date(byAdding: .day, value: -7, to: date) {
+                            // 일주일 전 날짜의 월과 일 추출
+                            let month = calendar.component(.month, from: oneWeekAgo)
+                            let day = calendar.component(.day, from: oneWeekAgo)
+                            
+                            // "지난 최고" 부분을 일주일 전 날짜로 표시
+                            let newRow = SummaryRow(
+                                summaryType: summaryType,
+                                stack: SummaryRowElement(
+                                    Str: "\(calendar.component(.month, from: date))월 \(calendar.component(.day, from: date))일 최고",
+                                    Updown: Int(difference),
+                                    Value: maxThisDay
+                                ),
+                                best: SummaryRowElement(
+                                    Str: "\(month)월 \(day)일 최고",
+                                    Updown: nil,
+                                    Value: maxLastWeek
+                                ),
+                                duration: nil
+                            )
+                            
+                            if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
+                                self.SummaryArray[index] = newRow
+                            } else {
+                                self.SummaryArray.append(newRow)
+                            }
                         }
                     }
                 }
             }
         }
-
+        
         
         fetchAndCompare(type: .heartRate, measureUnit: HKUnit(from: "count/min"), summaryType: .heartRate)
         fetchAndCompare(type: .stepCount, measureUnit: HKUnit.count(), summaryType: .walk)
@@ -334,9 +424,9 @@ class WorkoutManager:NSObject,ObservableObject{
         
         
         // 결과 확인
-//        print("Updated workoutProgressArray: \(self.workoutProgressArray)")
+        //        print("Updated workoutProgressArray: \(self.workoutProgressArray)")
     }
-
+    
     func resetDatas(){
         SummaryArray.removeAll()
         summaryArray = nil
@@ -397,18 +487,18 @@ extension WorkoutManager {
         
         fetchWeeklyData(type: .heartRate, start: startOfThisWeek, end: endOfThisWeek) { samples in
             guard let samples = samples, !samples.isEmpty else {
-                print("심박수 데이터가 없습니다.")
+                print("심박수 데이터가 없습니다.start:\(startOfThisWeek),end:\(endOfThisWeek)")
                 completion(["데이터 없음": 0])
                 return
             }
             for sample in samples {
-                let heartRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+                _ = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
                 let startDate = sample.startDate
                 let endDate = sample.endDate
-                let duration = endDate.timeIntervalSince(startDate)
+                _ = endDate.timeIntervalSince(startDate)
             }
-
-
+            
+            
             
             
             let distribution = self.calculateHeartRateDistribution(for: samples, maxHeartRate: maxHeartRate)
@@ -505,68 +595,68 @@ enum TimePeriod:Equatable,Hashable {
         }
     }
     // 날짜 형식에 맞는 텍스트 반환
-       func formattedDateText(for date: Date = Date()) -> String {
-           let calendar = Calendar.current
-           let formatter = DateFormatter()
-           formatter.locale = Locale(identifier: "ko_KR")
-
-           switch self {
-           case .monthly:
-               formatter.dateFormat = "yyyy년 M월"
-               return formatter.string(from: date)
-
-           case .yearly:
-               formatter.dateFormat = "yyyy년"
-               return formatter.string(from: date)
-           default :
-               let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date))!
-               let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek)!
-
-               formatter.dateFormat = "yyyy년 M월 d일"
-               return "\(formatter.string(from: startOfWeek)) ~ \(formatter.string(from: endOfWeek))"
-           }
-       }
+    func formattedDateText(for date: Date = Date()) -> String {
+        let calendar = Calendar.current
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        
+        switch self {
+        case .monthly:
+            formatter.dateFormat = "yyyy년 M월"
+            return formatter.string(from: date)
+            
+        case .yearly:
+            formatter.dateFormat = "yyyy년"
+            return formatter.string(from: date)
+        default :
+            let startOfWeek = calendar.date(from: calendar.dateComponents([.yearForWeekOfYear, .weekOfYear], from: date))!
+            let endOfWeek = calendar.date(byAdding: .day, value: 6, to: startOfWeek)!
+            
+            formatter.dateFormat = "yyyy년 M월 d일"
+            return "\(formatter.string(from: startOfWeek)) ~ \(formatter.string(from: endOfWeek))"
+        }
+    }
     
     func getDateRange() -> (start: Date, end: Date) {
-            let calendar = Calendar.current
-            let now = Date()
-
-            switch self {
-            case .weekly:
-                return WorkoutManager().getStartAndEndOfWeek()
-            case .monthly:
-                let start = calendar.dateInterval(of: .month, for: now)?.start ?? now
-                let end = calendar.date(byAdding: .month, value: 1, to: start) ?? now
-                return (start, end)
-            case .yearly:
-                let start = calendar.dateInterval(of: .year, for: now)?.start ?? now
-                let end = calendar.date(byAdding: .year, value: 1, to: start) ?? now
-                return (start, end)
-            case .custom(let startDate, let endDate):
-                return (startDate ?? now, endDate ?? now)
-            }
+        let calendar = Calendar.current
+        let now = Date()
+        
+        switch self {
+        case .weekly:
+            return WorkoutManager().getStartAndEndOfWeek()
+        case .monthly:
+            let start = calendar.dateInterval(of: .month, for: now)?.start ?? now
+            let end = calendar.date(byAdding: .month, value: 1, to: start) ?? now
+            return (start, end)
+        case .yearly:
+            let start = calendar.dateInterval(of: .year, for: now)?.start ?? now
+            let end = calendar.date(byAdding: .year, value: 1, to: start) ?? now
+            return (start, end)
+        case .custom(let startDate, let endDate):
+            return (startDate ?? now, endDate ?? now)
         }
-
-        func getLastPeriodDateRange() -> (start: Date, end: Date) {
-            let calendar = Calendar.current
-
-            switch self {
-            case .weekly:
-                let start = calendar.date(byAdding: .weekOfYear, value: -1, to: getDateRange().start)!
-                let end = calendar.date(byAdding: .weekOfYear, value: -1, to: getDateRange().end)!
-                return (start, end)
-            case .monthly:
-                let start = calendar.date(byAdding: .month, value: -1, to: getDateRange().start)!
-                let end = calendar.date(byAdding: .month, value: -1, to: getDateRange().end)!
-                return (start, end)
-            case .yearly:
-                let start = calendar.date(byAdding: .year, value: -1, to: getDateRange().start)!
-                let end = calendar.date(byAdding: .year, value: -1, to: getDateRange().end)!
-                return (start, end)
-            case .custom:
-                fatalError("Custom range does not support last period comparison")
-            }
+    }
+    
+    func getLastPeriodDateRange() -> (start: Date, end: Date) {
+        let calendar = Calendar.current
+        
+        switch self {
+        case .weekly:
+            let start = calendar.date(byAdding: .weekOfYear, value: -1, to: getDateRange().start)!
+            let end = calendar.date(byAdding: .weekOfYear, value: -1, to: getDateRange().end)!
+            return (start, end)
+        case .monthly:
+            let start = calendar.date(byAdding: .month, value: -1, to: getDateRange().start)!
+            let end = calendar.date(byAdding: .month, value: -1, to: getDateRange().end)!
+            return (start, end)
+        case .yearly:
+            let start = calendar.date(byAdding: .year, value: -1, to: getDateRange().start)!
+            let end = calendar.date(byAdding: .year, value: -1, to: getDateRange().end)!
+            return (start, end)
+        case .custom:
+            fatalError("Custom range does not support last period comparison")
         }
+    }
 }
 extension TimePeriod: CaseIterable {
     static var allCases: [TimePeriod] {
@@ -598,72 +688,116 @@ enum HeartRateZone: String {
 
 extension WorkoutManager {
     /// 특정 기간(TimePeriod) 동안의 심박수 구간 분석
-       func analyzeHeartRateZonesForTimePeriod(for timePeriod: TimePeriod, completion: @escaping () -> Void) {
-           self.resetDatas()
-           guard let maxRate = maxHeartRate else {
-               print("💀 maxHeartRate가 설정되지 않았습니다.")
-               completion()
-               return
-           }
-           
-           guard let dateRange = getDateRange(for: timePeriod) else {return}
-           
-           fetchWeeklyData(type: .heartRate, start: dateRange.start, end: dateRange.end) { samples in
-               guard let samples = samples, !samples.isEmpty else {
-                   print("심박수 데이터가 없습니다.")
-                   self.updateWorkoutProgressArray(from: [:]) // 데이터가 없으면 빈 값으로 업데이트
-                   completion()
-                   return
-               }
-               
-               let distribution = self.calculateHeartRateDistributionDetail(for: samples, maxHeartRate: maxRate)
-               self.updateWorkoutProgressArray(from: distribution)
-               completion()
-           }
-       }
-       
-       /// 심박수 구간별 분포 계산
-       func calculateHeartRateDistributionDetail(for samples: [HKQuantitySample], maxHeartRate: Double) -> [String: Double] {
-           var timeInZones: [String: Double] = [
-               "50% 이상": 0,
-               "60% 이상": 0,
-               "70% 이상": 0,
-               "80% 이상": 0,
-               "90% 이상": 0
-           ]
-           
-           let heartRateZones: [(threshold: Double, label: String)] = [
-               (maxHeartRate * 0.9, "90% 이상"),
-               (maxHeartRate * 0.8, "80% 이상"),
-               (maxHeartRate * 0.7, "70% 이상"),
-               (maxHeartRate * 0.6, "60% 이상"),
-               (maxHeartRate * 0.5, "50% 이상")
-           ]
-           
-           for sample in samples {
-               let heartRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
-               
-               for zone in heartRateZones {
-                   if heartRate >= zone.threshold {
-                       timeInZones[zone.label]! += 1
-                       break
-                   }
-               }
-           }
-           
-           let totalSamples = samples.count
-           guard totalSamples > 0 else {
-               return timeInZones.mapValues { _ in 0 }
-           }
-           
-           var distribution: [String: Double] = [:]
-           for (zone, count) in timeInZones {
-               distribution[zone] = (count / Double(totalSamples)) * 100
-           }
-           
-           return distribution
-       }
-       
+    func analyzeHeartRateZonesForTimePeriod(for timePeriod: TimePeriod, completion: @escaping () -> Void) {
+        self.resetDatas()
+        
+        guard let maxRate = maxHeartRate else {
+            print("💀 maxHeartRate가 설정되지 않았습니다.")
+            completion()
+            return
+        }
+        
+        guard let dateRange = getDateRange(for: timePeriod) else { return }
+        
+        fetchWeeklyData(type: .heartRate, start: dateRange.start, end: dateRange.end) { samples in
+            guard let samples = samples, !samples.isEmpty else {
+                print("심박수 데이터가 없습니다.start : \(dateRange.start),end : \(dateRange.end)")
+                self.updateWorkoutProgressArray(from: [:]) // 데이터가 없으면 빈 값으로 업데이트
+                completion()
+                return
+            }
+            
+            // 데이터 그룹화 기준 결정 (1개월 이상일 경우 월 단위 그룹화)
+            let calendar = Calendar.current
+            let groupingUnit: Calendar.Component = {
+                if case .yearly = timePeriod {
+                    return .month
+                } else if case .custom(let startDate?, let endDate?) = timePeriod,
+                          calendar.dateComponents([.month], from: startDate, to: endDate).month ?? 0 >= 1 {
+                    return .month
+                } else {
+                    return .day
+                }
+            }()
+            
+            // 그룹화된 샘플 데이터
+            let groupedSamples = Dictionary(grouping: samples) { sample in
+                switch groupingUnit {
+                case .month:
+                    // 월 단위 그룹화: year, month를 사용하여 날짜 생성
+                    let components = calendar.dateComponents([.year, .month], from: sample.startDate)
+                    return calendar.date(from: components) ?? sample.startDate // 날짜가 없으면 기본적으로 시작 날짜 반환
+                case .day:
+                    // 일 단위 그룹화
+                    return calendar.startOfDay(for: sample.startDate)
+                default:
+                    // 기본: 시작 날짜 반환
+                    return sample.startDate
+                }
+            }
+            
+            
+            // 각 그룹의 최고 심박수 계산
+            let maxHeartRatesByDate: [DValue] = groupedSamples.compactMap { (date, samples) in
+                guard let maxSample = samples.max(by: { $0.quantity.doubleValue(for: .count().unitDivided(by: .minute())) < $1.quantity.doubleValue(for: .count().unitDivided(by: .minute())) }) else {
+                    return nil
+                }
+                
+                return DValue(date: date, value: maxSample.quantity.doubleValue(for: .count().unitDivided(by: .minute())))
+            }
+            
+            DispatchQueue.main.async {
+                self.chartData = maxHeartRatesByDate
+                print("Updated chartData: \(self.chartData)")
+            }
+            
+            completion()
+        }
+    }
+    
+    
+    /// 심박수 구간별 분포 계산
+    func calculateHeartRateDistributionDetail(for samples: [HKQuantitySample], maxHeartRate: Double) -> [String: Double] {
+        var timeInZones: [String: Double] = [
+            "50% 이상": 0,
+            "60% 이상": 0,
+            "70% 이상": 0,
+            "80% 이상": 0,
+            "90% 이상": 0
+        ]
+        
+        let heartRateZones: [(threshold: Double, label: String)] = [
+            (maxHeartRate * 0.9, "90% 이상"),
+            (maxHeartRate * 0.8, "80% 이상"),
+            (maxHeartRate * 0.7, "70% 이상"),
+            (maxHeartRate * 0.6, "60% 이상"),
+            (maxHeartRate * 0.5, "50% 이상")
+        ]
+        
+        for sample in samples {
+            let heartRate = sample.quantity.doubleValue(for: HKUnit(from: "count/min"))
+            
+            for zone in heartRateZones {
+                if heartRate >= zone.threshold {
+                    timeInZones[zone.label]! += 1
+                    break
+                }
+            }
+        }
+        
+        let totalSamples = samples.count
+        guard totalSamples > 0 else {
+            return timeInZones.mapValues { _ in 0 }
+        }
+        
+        var distribution: [String: Double] = [:]
+        for (zone, count) in timeInZones {
+            distribution[zone] = (count / Double(totalSamples)) * 100
+        }
+        
+        return distribution
+    }
+    
     func getDateRange(for timePeriod: TimePeriod) -> (start: Date, end: Date)? {
         let calendar = Calendar.current
         let now = Date()
@@ -681,14 +815,14 @@ extension WorkoutManager {
             return (start, end)
         case .custom(let startDate, let endDate):
             let startDate = timePeriod.getDateRange().start
-              let endDate = timePeriod.getDateRange().end
-//                print("💀 Invalid custom date range: startDate or endDate is nil.")
-//                return nil
-//            }
+            let endDate = timePeriod.getDateRange().end
+            //                print("💀 Invalid custom date range: startDate or endDate is nil.")
+            //                return nil
+            //            }
             return (startDate, endDate)
         }
     }
-
+    
 }
 struct MetricDetail {
     var total: Double = 0.0
@@ -720,16 +854,11 @@ extension WorkoutManager {
             }
         case .face:
             // Face 관련 데이터는 특별한 처리가 필요하거나 가정된 데이터
-            DispatchQueue.main.async {
-                self.summaryArray = [
-                    SummaryRow(
-                        summaryType: .face,
-                        stack: SummaryRowElement(Str: "\(timePeriod) 데이터", Updown: nil, Value: nil),
-                        best: SummaryRowElement(Str: "페이스 데이터는 별도로 지원됩니다.", Updown: nil, Value: nil)
-                    )
-                ]
-                completion()
+            fetchWeeklyData(type: .heartRate, start: dateRange.start, end: dateRange.end) { samples in
+                self.processSamples(samples, for: summaryType, unit: HKUnit(from: "count/min"), timePeriod: timePeriod, completion: completion)
             }
+        case .workoutDuration:
+            return
         }
     }
     
@@ -740,43 +869,79 @@ extension WorkoutManager {
                 self.summaryArray = [SummaryRow(
                     summaryType: type,
                     stack: SummaryRowElement(Str: "\(type.element.title) 데이터 없음", Updown: nil, Value: nil),
-                    best: SummaryRowElement(Str: "최고값 없음", Updown: nil, Value: nil)
+                    best: SummaryRowElement(Str: "최고값 없음", Updown: nil, Value: nil),
+                    duration: nil
                 )]
                 completion()
             }
             return
         }
-
+        
+        if type == .face {
+            checkYear(for: timePeriod) { samples in
+                let pace = self.calculatePace(from: samples) // 평균 페이스 계산
+                
+                // 최고 페이스 계산 (최소 시간/거리 비율, 즉 최고 속도에 해당하는 페이스)
+                let bestPace = samples
+                    .map { sample in
+                        let distance = sample.quantity.doubleValue(for: .meterUnit(with: .kilo))
+                        let duration = sample.endDate.timeIntervalSince(sample.startDate) / 60.0 // 분 단위로 변환
+                        return duration / distance // 분/km
+                    }
+                    .min() ?? 0.0 // 최솟값, 기본값은 0.0
+                
+                DispatchQueue.main.async {
+                    self.summaryArray = [
+                        SummaryRow(
+                            summaryType: .face,
+                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 평균 페이스", Updown: nil, Value: pace),
+                            best: SummaryRowElement(Str: "페이스 최고 기록", Updown: nil, Value: bestPace),
+                            duration: nil
+                        )
+                    ]
+                    print("FaceSummaryArray: \(self.summaryArray)")
+                    completion()
+                }
+            }
+            
+            return
+        }
+        
+        
+        
+        // 기존 로직 유지
         let totalValue = samples.reduce(0.0) { $0 + $1.quantity.doubleValue(for: unit) }
         let days = Double(Calendar.current.dateComponents([.day], from: timePeriod.getDateRange().start, to: timePeriod.getDateRange().end).day! + 1)
         let dailyAverage = totalValue / days
         let maxValue = samples.max(by: { $0.quantity.doubleValue(for: unit) < $1.quantity.doubleValue(for: unit) })?.quantity.doubleValue(for: unit) ?? 0
-
+        
         if case .custom = timePeriod {
-            // 과거 데이터 비교 없이 현재 데이터만 저장
+            // Custom 시간 처리
             DispatchQueue.main.async {
                 self.summaryArray = [
                     SummaryRow(
                         summaryType: type,
                         stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균", Updown: nil, Value: dailyAverage),
-                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
                     ),
                     SummaryRow(
                         summaryType: type,
                         stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고", Updown: nil, Value: maxValue),
-                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
                     ),
                     SummaryRow(
                         summaryType: type,
                         stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 누적", Updown: nil, Value: totalValue),
-                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil)
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
                     )
                 ]
-                print("PeriodsSummaryArray:\(self.summaryArray)")
                 completion()
             }
             return
-        }else{
+        } else {
             // 지난 기간 데이터 가져오기
             let lastPeriodRange = timePeriod.getLastPeriodDateRange()
             if let quantityType = type.toQuantityType() {
@@ -785,36 +950,83 @@ extension WorkoutManager {
                     let lastDays = Double(Calendar.current.dateComponents([.day], from: lastPeriodRange.start, to: lastPeriodRange.end).day! + 1)
                     let lastDailyAverage = lastTotalValue / lastDays
                     let lastMaxValue = lastPeriodSamples?.max(by: { $0.quantity.doubleValue(for: unit) < $1.quantity.doubleValue(for: unit) })?.quantity.doubleValue(for: unit) ?? 0
-
+                    
                     DispatchQueue.main.async {
                         self.summaryArray = [
                             SummaryRow(
                                 summaryType: type,
                                 stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균", Updown: nil, Value: dailyAverage),
-                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 일평균", Updown: nil, Value: lastDailyAverage)
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 일평균", Updown: nil, Value: lastDailyAverage),
+                                duration: nil
                             ),
                             SummaryRow(
                                 summaryType: type,
                                 stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고", Updown: nil, Value: maxValue),
-                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 최고", Updown: nil, Value: lastMaxValue)
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 최고", Updown: nil, Value: lastMaxValue),
+                                duration: nil
                             ),
                             SummaryRow(
                                 summaryType: type,
                                 stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 누적", Updown: nil, Value: totalValue),
-                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 누적", Updown: nil, Value: lastTotalValue)
+                                best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 누적", Updown: nil, Value: lastTotalValue),
+                                duration: nil
                             )
                         ]
-                        print("summaryArray:\(self.summaryArray)")
                         completion()
                     }
                 }
             }
         }
-
-        
     }
-
-
+    
+    // 페이스 계산을 위한 메서드 추가
+    private func calculatePace(from samples: [HKQuantitySample]) -> Double {
+        var totalDistance: Double = 0.0
+        var totalTime: TimeInterval = 0.0
+        
+        for sample in samples {
+            // 거리 데이터인지 확인
+            if sample.quantityType == HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning) {
+                let distance = sample.quantity.doubleValue(for: .meterUnit(with: .kilo)) // km 단위로 거리 가져오기
+                let duration = sample.endDate.timeIntervalSince(sample.startDate) // 초 단위로 시간 계산
+                
+                totalDistance += distance
+                totalTime += duration
+                print("totalDistance:\(totalDistance)")
+            } else {
+                print("Unsupported quantity type: \(sample.quantityType.identifier)")
+            }
+        }
+        
+        // 페이스 계산: 총 시간(분) / 총 거리(킬로미터)
+        return totalDistance > 0 ? (totalTime / 60.0) / totalDistance : 0.0
+    }
+    
+    func checkYear(for timePeriod: TimePeriod, completion: @escaping ([HKQuantitySample]) -> Void) {
+        let distanceType = HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!
+        let dateRange = timePeriod.getDateRange()
+        
+        let predicate = HKQuery.predicateForSamples(withStart: dateRange.start, end: dateRange.end, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: distanceType, predicate: predicate, limit: 0, sortDescriptors: nil) { query, results, error in
+            if let error = error {
+                print("Error fetching distance data: \(error.localizedDescription)")
+                completion([]) // 빈 배열 반환
+                return
+            }
+            
+            guard let samples = results as? [HKQuantitySample], !samples.isEmpty else {
+                print("No distance data found")
+                completion([]) // 빈 배열 반환
+                return
+            }
+            
+            print("Found \(samples.count) distance samples")
+            completion(samples) // 쿼리 결과 전달
+        }
+        
+        healthStore.execute(query)
+    }
 }
 
 extension WorkoutManager {
@@ -834,9 +1046,9 @@ extension WorkoutManager {
             // custom 기간에서는 지난 최고 심박수 구하지 않음
             if case .custom = timePeriod {
                 DispatchQueue.main.async {
-                        self.LastmaxHeartRate = nil
-                        completion()
-                        return
+                    self.LastmaxHeartRate = nil
+                    completion()
+                    return
                 }
             }else{
                 DispatchQueue.main.async {
@@ -864,7 +1076,7 @@ extension WorkoutManager {
     /// 지난 기간의 시작 및 종료 날짜를 계산
     private func getLastPeriodDateRange(for timePeriod: TimePeriod) -> (start: Date, end: Date)? {
         let calendar = Calendar.current
-
+        
         switch timePeriod {
         case .weekly:
             guard let currentRange = getDateRange(for: .weekly) else {
@@ -897,8 +1109,101 @@ extension WorkoutManager {
             preconditionFailure("Custom period does not support last max heart rate.")
         }
     }
-
+    
 }
 
 
 
+
+// MARK: - 지도데이터 barco 041119
+extension WorkoutManager {
+    
+    // MARK: - 특정 날짜로부터 Date 객체 생성
+    func dateFromComponents(year: Int, month: Int, day: Int) -> Date? {
+        var components = DateComponents()
+        components.year = year
+        components.month = month
+        components.day = day
+        
+        return Calendar.current.date(from: components)
+    }
+    
+    // MARK: - 특정 날짜의 운동 데이터를 가져옴
+    func fetchWorkoutRoute(for date: Date) {
+        let workoutType = HKObjectType.workoutType()
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        guard let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) else {
+            print("잘못된 날짜 범위 설정")
+            return
+        }
+        
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: [])
+        
+        let query = HKSampleQuery(sampleType: workoutType, predicate: predicate, limit: 0, sortDescriptors: nil) { [weak self] _, samples, error in
+            
+            if let error = error {
+                print("운동 데이터 쿼리 오류: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let self = self,
+                  let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
+                print("운동 데이터가 없습니다.")
+                return
+            }
+            
+            for workout in workouts {
+                print("운동 유형: \(workout.workoutActivityType.rawValue)")
+                self.fetchRoute(for: workout)
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    // MARK: - 운동의 경로 데이터를 가져옴
+    private func fetchRoute(for workout: HKWorkout) {
+        let routeType = HKSeriesType.workoutRoute()
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        
+        let query = HKAnchoredObjectQuery(type: routeType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, error in
+            
+            if let error = error {
+                print("경로 데이터 쿼리 오류: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let self = self, let routes = samples as? [HKWorkoutRoute], !routes.isEmpty else {
+                print("❌ 경로 데이터가 없습니다.")
+                return
+            }
+            
+            var allLocations: [CLLocation] = []
+            let dispatchGroup = DispatchGroup()
+            
+            for route in routes {
+                dispatchGroup.enter()
+                let routeQuery = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
+                    if let error = error {
+                        print("경로 쿼리 중 오류 발생: \(error.localizedDescription)")
+                    }
+                    if let locations = locations {
+                        allLocations.append(contentsOf: locations)
+                    }
+                    if done {
+                        dispatchGroup.leave()
+                    }
+                }
+                self.healthStore.execute(routeQuery)
+            }
+            
+            dispatchGroup.notify(queue: .main) {
+                self.locations = allLocations
+                print("총 \(allLocations.count)개의 위치 데이터를 가져왔습니다.")
+            }
+        }
+        
+        healthStore.execute(query)
+    }
+    
+}
