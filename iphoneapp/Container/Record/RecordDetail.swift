@@ -13,6 +13,7 @@ struct Data {
     let value: Int
 }
 struct RecordDetail: View {
+    
     @StateObject var vm = RecordDetailVM()
     @EnvironmentObject var workoutManager : WorkoutManager
     private let months = Array(1...12) // 1월부터 12월까지

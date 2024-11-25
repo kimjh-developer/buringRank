@@ -25,7 +25,9 @@ class WorkoutManager:NSObject,ObservableObject{
     @Published var ThismaxHeartRate : Double?
     @Published var LastmaxHeartRate : Double?
     @Published var chartData: [DValue] = []
-    @Published var locations: [CLLocation] = []
+    
+    
+    var chooseDay : Date?
     
     let typesToShare: Set<HKSampleType> = [
         
@@ -33,12 +35,12 @@ class WorkoutManager:NSObject,ObservableObject{
         HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
         HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-//        HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
-//        HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
+        HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+        HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-//        HKObjectType.workoutType(),
-//        HKSeriesType.workoutRoute()
+        HKObjectType.workoutType(), // 반드시 포함해야 함
+        HKSeriesType.workoutRoute() // 의존성 있음
     ]
     // 읽기 권한
     let typesToRead: Set = [
@@ -47,14 +49,14 @@ class WorkoutManager:NSObject,ObservableObject{
            HKQuantityType.quantityType(forIdentifier: .heartRate)!,
            HKQuantityType.quantityType(forIdentifier: .stepCount)!,
            HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-//           HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-//           HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
-//           HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
+           HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+           HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+           HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
            HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
            HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
            HKObjectType.activitySummaryType(),
-//           HKObjectType.workoutType(),
-//           HKSeriesType.workoutRoute()
+           HKObjectType.workoutType(), // 반드시 포함해야 함
+           HKSeriesType.workoutRoute() // 의존성 있음
        ]
        
     // MARK: - 권한 요청
@@ -63,56 +65,10 @@ class WorkoutManager:NSObject,ObservableObject{
         
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if success {
-                
-                DispatchQueue.main.async {
-                    
-                    // 읽기 권한만 확인
-                    var allPermissionsGranted = true
-                    var typesToRequest = Set<HKObjectType>()
-                    for type in self.typesToRead {
-                        // 읽기 권한만 로그로 출력
-                        let status = self.healthStore.authorizationStatus(for: type)
-                        
-                        switch status {
-                        case .sharingAuthorized:
-                            print("\(type.identifier): Reading Authorized") // 읽기 권한만 표시
-                        case .sharingDenied:
-                            print("\(type.identifier): Reading sharingDenied") // 읽기 권한만 표시
-                        case  .notDetermined:
-                            print("\(type.identifier):  Not Determined")
-                            typesToRequest.insert(type)
-//                            allPermissionsGranted = false
-                        @unknown default:
-                            print("\(type.identifier): Unknown Status")
-                            allPermissionsGranted = false
-                        }
-                    }
-                    
-                    if !typesToRequest.isEmpty {
-                        self.healthStore.requestAuthorization(toShare: nil, read: typesToRequest) { success, error in
-                                if success {
-                                    print("권한 요청 성공")
-                                } else {
-                                    print("권한 요청 실패: \(error?.localizedDescription ?? "알 수 없는 오류")")
-                                }
-                            }
-                        } else {
-                            print("모든 권한이 이미 설정되어 있습니다.")
-                        }
-                    
-                    if allPermissionsGranted {
-                        DispatchQueue.main.asyncAfter(deadline: .now()+2.0){
-                            self.AuthorizationFullyGranted = true
-                            print("Authorization Fully Granted for Reading")
-                            self.fetchUserData()
-                        }
-                    } else {
-                        self.AuthoriseWarn = true
-                        print("Partial Authorization Granted: Some permissions were denied for reading.")
-                    }
+                DispatchQueue.main.asyncAfter(deadline: .now()+1.0) {
+                    self.checkAuthorizationStatus()
                 }
             } else {
-                
                 DispatchQueue.main.async {
                     self.AuthoriseWarn = true
                 }
@@ -123,32 +79,65 @@ class WorkoutManager:NSObject,ObservableObject{
     
     // MARK: - 권한 상태 확인
     private func checkAuthorizationStatus() {
-        var allPermissionsGranted = true
-        
-        for type in typesToRead {
-            let status = healthStore.authorizationStatus(for: type)
-            switch status {
-            case .sharingAuthorized:
-                print("\(type.identifier): Reading Authorized")
-            case .sharingDenied:
-                print("\(type.identifier): Reading Denied")
-                allPermissionsGranted = false
-            case .notDetermined:
-                print("\(type.identifier): Not Determined")
-                allPermissionsGranted = false
-            @unknown default:
-                print("\(type.identifier): Unknown Status")
-                allPermissionsGranted = false
+            // 읽기 권한만 확인
+            var allPermissionsGranted = true
+            var typesToRequest = Set<HKObjectType>()
+            for type in self.typesToShare {
+                // 읽기 권한만 로그로 출력
+                let status = self.healthStore.authorizationStatus(for: type)
+                switch status {
+                case .sharingAuthorized:
+                    print("\(type.identifier):  ✍️ ✅ Authorized") // 읽기 권한만 표시
+                case .sharingDenied:
+                    print("\(type.identifier): ✍️ 🛑 Denined") // 읽기 권한만 표시
+                case  .notDetermined:
+                    print("\(type.identifier): ✍️ 🔥 Determined")
+                @unknown default:
+                    print("\(type.identifier): ✍️ ❌ Unknown Status")
+                    allPermissionsGranted = false
+                }
             }
-        }
+            for type in self.typesToRead {
+                // 읽기 권한만 로그로 출력
+                let status = self.healthStore.authorizationStatus(for: type)
+                switch status {
+                case .sharingAuthorized:
+                    print("\(type.identifier): 📖 ✅ Authorized") // 읽기 권한만 표시
+                case .sharingDenied:
+                    print("\(type.identifier): 📖 🛑 sharingDenied") // 읽기 권한만 표시
+                case  .notDetermined:
+                    print("\(type.identifier):  📖 🔥 Determined")
+                    typesToRequest.insert(type)
+//                            allPermissionsGranted = false
+                @unknown default:
+                    print("\(type.identifier): 📖 ❌ Unknown Status")
+                    allPermissionsGranted = false
+                }
+            }
+            
+            if !typesToRequest.isEmpty {
+                self.healthStore.requestAuthorization(toShare: nil, read: typesToRequest) { success, error in
+                        if success {
+                            print("권한 요청 성공")
+                        } else {
+                            print("권한 요청 실패: \(error?.localizedDescription ?? "알 수 없는 오류")")
+                        }
+                    }
+                } else {
+                    print("모든 권한이 이미 설정되어 있습니다.")
+                }
+            
+            if allPermissionsGranted {
+                DispatchQueue.main.asyncAfter(deadline: .now()+2.0){
+                    self.AuthorizationFullyGranted = true
+                    print("Authorization Fully Granted for Reading")
+                    self.fetchUserData()
+                }
+            } else {
+                self.AuthoriseWarn = true
+                print("Partial Authorization Granted: Some permissions were denied for reading.")
+            }
         
-        if allPermissionsGranted {
-            print("✅ 모든 권한이 허용되었습니다.")
-            self.AuthorizationFullyGranted = true
-        } else {
-            print("❌ 일부 권한이 허용되지 않았습니다.")
-            self.AuthoriseWarn = true
-        }
     }
     // Fetch user's age and height
     func fetchUserData() {
@@ -222,6 +211,7 @@ class WorkoutManager:NSObject,ObservableObject{
                         }
                     }
                     
+                    
                     let difference = thisWeekTotal - lastWeekTotal
                     
                     DispatchQueue.main.async {
@@ -236,7 +226,7 @@ class WorkoutManager:NSObject,ObservableObject{
                         } else {
                             self.SummaryArray.append(newRow)
                         }
-                        
+                        print("SummaryArray:\(self.SummaryArray)")
                         // 최고 심박수 출력 (디버깅용)
                         if summaryType == .heartRate {
                             print("이번 주 최고 심박수: \(maxThisWeek) BPM")
@@ -245,8 +235,6 @@ class WorkoutManager:NSObject,ObservableObject{
                 }
             }
         }
-        
-        
         
         // Fetch and compare for walk, calorie, and distance
         fetchAndCompare(type: .heartRate, measureUnit: HKUnit(from: "count/min"), summaryType: .heartRate)
@@ -276,6 +264,7 @@ class WorkoutManager:NSObject,ObservableObject{
     //지정일자에 데이터를 구함
     func getStartOfWeek(for date: Date) -> Date {
         var calendar = Calendar.current
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)! // UTC 0 기준으로 설정 (원하는 시간대로 변경 가능)
         calendar.firstWeekday = 2
         
         let startOfWeek = calendar.dateInterval(of: .weekOfYear, for: date)?.start ?? date
@@ -283,13 +272,16 @@ class WorkoutManager:NSObject,ObservableObject{
     }
     
     func getDateForWeekday(weekday: Int) -> Date? {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)! // UTC 0 기준으로 설정 (원하는 시간대로 변경 가능)
         let startOfWeek = getStartOfWeek(for: Date())
         return calendar.date(byAdding: .day, value: weekday, to: startOfWeek)
     }
     
     func getStartAndEndOfDay(for date: Date) -> (start: Date, end: Date) {
-        let calendar = Calendar.current
+        var calendar = Calendar.current
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)! // UTC 0 기준으로 설정 (원하는 시간대로 변경 가능)
+
         let startOfDay = calendar.startOfDay(for: date)
         let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
         return (startOfDay, endOfDay)
@@ -391,7 +383,7 @@ class WorkoutManager:NSObject,ObservableObject{
             print("Invalid weekday selected.")
             return
         }
-        
+        chooseDay = selectedDate
         getDailyComparisonData(for: selectedDate)
     }
     
@@ -1115,95 +1107,4 @@ extension WorkoutManager {
 
 
 
-// MARK: - 지도데이터 barco 041119
-extension WorkoutManager {
-    
-    // MARK: - 특정 날짜로부터 Date 객체 생성
-    func dateFromComponents(year: Int, month: Int, day: Int) -> Date? {
-        var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = day
-        
-        return Calendar.current.date(from: components)
-    }
-    
-    // MARK: - 특정 날짜의 운동 데이터를 가져옴
-    func fetchWorkoutRoute(for date: Date) {
-        let workoutType = HKObjectType.workoutType()
-        let startOfDay = Calendar.current.startOfDay(for: date)
-        guard let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) else {
-            print("잘못된 날짜 범위 설정")
-            return
-        }
-        
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: [])
-        
-        let query = HKSampleQuery(sampleType: workoutType, predicate: predicate, limit: 0, sortDescriptors: nil) { [weak self] _, samples, error in
-            
-            if let error = error {
-                print("운동 데이터 쿼리 오류: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let self = self,
-                  let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
-                print("운동 데이터가 없습니다.")
-                return
-            }
-            
-            for workout in workouts {
-                print("운동 유형: \(workout.workoutActivityType.rawValue)")
-                self.fetchRoute(for: workout)
-            }
-        }
-        
-        healthStore.execute(query)
-    }
-    
-    // MARK: - 운동의 경로 데이터를 가져옴
-    private func fetchRoute(for workout: HKWorkout) {
-        let routeType = HKSeriesType.workoutRoute()
-        let predicate = HKQuery.predicateForObjects(from: workout)
-        
-        let query = HKAnchoredObjectQuery(type: routeType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, error in
-            
-            if let error = error {
-                print("경로 데이터 쿼리 오류: \(error.localizedDescription)")
-                return
-            }
-            
-            guard let self = self, let routes = samples as? [HKWorkoutRoute], !routes.isEmpty else {
-                print("❌ 경로 데이터가 없습니다.")
-                return
-            }
-            
-            var allLocations: [CLLocation] = []
-            let dispatchGroup = DispatchGroup()
-            
-            for route in routes {
-                dispatchGroup.enter()
-                let routeQuery = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
-                    if let error = error {
-                        print("경로 쿼리 중 오류 발생: \(error.localizedDescription)")
-                    }
-                    if let locations = locations {
-                        allLocations.append(contentsOf: locations)
-                    }
-                    if done {
-                        dispatchGroup.leave()
-                    }
-                }
-                self.healthStore.execute(routeQuery)
-            }
-            
-            dispatchGroup.notify(queue: .main) {
-                self.locations = allLocations
-                print("총 \(allLocations.count)개의 위치 데이터를 가져왔습니다.")
-            }
-        }
-        
-        healthStore.execute(query)
-    }
-    
-}
+

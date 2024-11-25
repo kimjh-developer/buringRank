@@ -46,6 +46,12 @@ struct ChooseDificulty: View {
             })
         })
         .padding(.horizontal)
+        .onAppear(perform: {
+            if hKWorkoutActivityType == .running || hKWorkoutActivityType == .hiking{
+                workoutManager.requestLocationAuthorization()
+            }
+            
+        })
         .navigationTitle({
             HStack(content: {
                 hKWorkoutActivityType.icon
@@ -124,7 +130,7 @@ struct ChooseDificulty: View {
                     
                     Text("\((baselineHeartRate*low/100).toString(withDecimalPlaces:0))~\((baselineHeartRate*high/100).toString(withDecimalPlaces: 0))bpm"
                     )
-                        .style(fontName: .klight,fontSize: 12,fontColor: isActivate ? Color.btnActivate : .white)
+                        .style(fontName: .klight,fontSize: 10,fontColor: isActivate ? Color.btnActivate : .white)
                         .frame(maxWidth: .infinity)
                     
                 })

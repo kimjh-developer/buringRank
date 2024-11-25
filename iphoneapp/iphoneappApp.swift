@@ -9,6 +9,7 @@ import SwiftUI
 
 @main
 struct iphoneappApp: App {
+    
     @StateObject private var workoutManager = WorkoutManager()
     
     var body: some Scene {

@@ -477,6 +477,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "버닝랭크에서 사용자의 운동위치를 이용해서 사용자의 운동을 기록합니다";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "버닝랭크에서 사용자의 운동위치를 이용해서 사용자의 운동을 기록합니다";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.burningrank.iphoneapp;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -511,6 +513,8 @@
 				INFOPLIST_KEY_CFBundleDisplayName = "버닝랭크";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 나이와 성별을 불러오기 위해 권한이 필요합니다";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "운동 데이터를 기록하기 위해 권한이 필요합니다";
+				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "버닝랭크에서 사용자의 운동위치를 이용해서 사용자의 운동을 기록합니다";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "버닝랭크에서 사용자의 운동위치를 이용해서 사용자의 운동을 기록합니다";
 				INFOPLIST_KEY_UISupportedInterfaceOrientations = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.burningrank.iphoneapp;
 				LD_RUNPATH_SEARCH_PATHS = (

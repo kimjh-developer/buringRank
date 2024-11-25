@@ -1,9 +1,9 @@
 import Foundation
 import HealthKit
-
+import CoreLocation
 class MapRecordVM: ObservableObject {
     let healthStore = HKHealthStore()
-    
+    @Published var locations: [CLLocation] = []
     // 읽기 권한 요청할 데이터 타입 설정
     let typesToRead: Set<HKObjectType> = [
         HKObjectType.workoutType(),
@@ -41,52 +41,85 @@ class MapRecordVM: ObservableObject {
         }
     }
     
-    // 특정 날짜의 운동 기록과 경로 데이터 가져오기
-    func fetchWorkoutRoutes(for date: Date, completion: @escaping ([HKWorkout], [HKWorkoutRoute]) -> Void) {
-        let calendar = Calendar.current
-        let startOfDay = calendar.startOfDay(for: date)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay)!
+    
+    // MARK: - 특정 날짜의 운동 데이터를 가져옴
+    func fetchWorkoutRoute(for date: Date) {
+        let workoutType = HKObjectType.workoutType()
+        let startOfDay = Calendar.current.startOfDay(for: date)
+        guard let endOfDay = Calendar.current.date(byAdding: .day, value: 1, to: startOfDay) else {
+            print("잘못된 날짜 범위 설정")
+            return
+        }
         
-        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: .strictStartDate)
+        let predicate = HKQuery.predicateForSamples(withStart: startOfDay, end: endOfDay, options: [])
         
-        let workoutQuery = HKSampleQuery(sampleType: HKObjectType.workoutType(), predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { query, samples, error in
-            guard let workouts = samples as? [HKWorkout], error == nil else {
-                print("운동 데이터 가져오기 실패: \(error?.localizedDescription ?? "알 수 없는 오류")")
-                completion([], [])
+        let query = HKSampleQuery(sampleType: workoutType, predicate: predicate, limit: 0, sortDescriptors: nil) { [weak self] _, samples, error in
+            
+            if let error = error {
+                print("운동 데이터 쿼리 오류: \(error.localizedDescription)")
                 return
             }
             
-            self.fetchRoutes(for: workouts) { routes in
-                completion(workouts, routes)
-            }
-        }
-        
-        healthStore.execute(workoutQuery)
-    }
-    
-    // 특정 운동에 대한 경로 데이터 가져오기
-    private func fetchRoutes(for workouts: [HKWorkout], completion: @escaping ([HKWorkoutRoute]) -> Void) {
-        var allRoutes: [HKWorkoutRoute] = []
-        let dispatchGroup = DispatchGroup()
-        
-        for workout in workouts {
-            let predicate = HKQuery.predicateForObjects(from: workout)
-            let routeQuery = HKAnchoredObjectQuery(type: HKSeriesType.workoutRoute(), predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { query, samples, _, _, error in
-                guard let routes = samples as? [HKWorkoutRoute], error == nil else {
-                    print("경로 데이터 가져오기 실패: \(error?.localizedDescription ?? "알 수 없는 오류")")
-                    return
-                }
-                
-                dispatchGroup.enter()
-                allRoutes.append(contentsOf: routes)
-                dispatchGroup.leave()
+            guard let self = self,
+                  let workouts = samples as? [HKWorkout], !workouts.isEmpty else {
+                print("운동 데이터가 없습니다.")
+                return
             }
             
-            healthStore.execute(routeQuery)
+            for workout in workouts {
+                print("운동 유형: \(workout.workoutActivityType.rawValue)")
+                self.fetchRoute(for: workout)
+            }
         }
         
-        dispatchGroup.notify(queue: .main) {
-            completion(allRoutes)
+        healthStore.execute(query)
+    }
+    
+    // MARK: - 운동의 경로 데이터를 가져옴
+    private func fetchRoute(for workout: HKWorkout) {
+        let routeType = HKSeriesType.workoutRoute()
+        let predicate = HKQuery.predicateForObjects(from: workout)
+        
+        let query = HKAnchoredObjectQuery(type: routeType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, error in
+            
+            if let error = error {
+                print("경로 데이터 쿼리 오류: \(error.localizedDescription)")
+                return
+            }
+            
+            guard let self = self, let routes = samples as? [HKWorkoutRoute], !routes.isEmpty else {
+                print("❌ 경로 데이터가 없습니다.")
+                return
+            }
+            
+            var allLocations: [CLLocation] = []
+            let dispatchGroup = DispatchGroup()
+            
+            for route in routes {
+                dispatchGroup.enter()
+                let routeQuery = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
+                    if let error = error {
+                        print("경로 쿼리 중 오류 발생: \(error.localizedDescription)")
+                    }
+                    if let locations = locations {
+                        allLocations.append(contentsOf: locations)
+                    }
+                    if done {
+                        dispatchGroup.leave()
+                    }
+                }
+                self.healthStore.execute(routeQuery)
+            }
+            
+            dispatchGroup.notify(queue: .main) {
+                self.locations = allLocations
+                print("총 \(allLocations.count)개의 위치 데이터를 가져왔습니다.")
+            }
         }
+        
+        healthStore.execute(query)
     }
 }
+
+
+

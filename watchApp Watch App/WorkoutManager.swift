@@ -50,26 +50,10 @@ class WorkoutManager:NSObject,ObservableObject{
     
     private var locationManager: CLLocationManager?
 
-    @Published var routeLocations: [CLLocation] = []
+    var routeLocations: [CLLocation] = []
     
     
-    let typesToShare: Set = [
-        
-        HKQuantityType.quantityType(forIdentifier: .heartRate)!,
-        HKQuantityType.quantityType(forIdentifier: .stepCount)!,
-        HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
-        HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
-        HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
-        HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-        HKQuantityType.workoutType(),
-        HKSeriesType.workoutRoute()
-    ]
-    
-    // The quantity types to read from the health store.
-    let typesToRead: Set = [
-        
-        HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
-        HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
+    let typesToShare: Set<HKSampleType> = [
         HKQuantityType.quantityType(forIdentifier: .heartRate)!,
         HKQuantityType.quantityType(forIdentifier: .stepCount)!,
         HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
@@ -78,13 +62,84 @@ class WorkoutManager:NSObject,ObservableObject{
         HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
         HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
         HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
-        HKObjectType.activitySummaryType(),
-        HKWorkoutType.workoutType(), // Workout 읽기 권한 추가
-        HKSeriesType.workoutRoute()
+        HKObjectType.workoutType(), // 반드시 포함해야 함
+        HKSeriesType.workoutRoute() // 의존성 있음
     ]
+    // 읽기 권한
+    let typesToRead: Set = [
+           HKObjectType.characteristicType(forIdentifier: .biologicalSex)!,
+           HKObjectType.characteristicType(forIdentifier: .dateOfBirth)!,
+           HKQuantityType.quantityType(forIdentifier: .heartRate)!,
+           HKQuantityType.quantityType(forIdentifier: .stepCount)!,
+           HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)!,
+           HKQuantityType.quantityType(forIdentifier: .distanceWalkingRunning)!,
+           HKQuantityType.quantityType(forIdentifier: .walkingSpeed)!,
+           HKQuantityType.quantityType(forIdentifier: .runningSpeed)!,
+           HKQuantityType.quantityType(forIdentifier: .oxygenSaturation)!,
+           HKQuantityType.quantityType(forIdentifier: .flightsClimbed)!,
+           HKObjectType.activitySummaryType(),
+           HKObjectType.workoutType(), // 반드시 포함해야 함
+           HKSeriesType.workoutRoute() // 의존성 있음
+       ]
+    
+    func requestAuthorization() {
+        
+        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
+            if success {
+                print("Authorization Granted")
+                self.fetchUserData()
+                DispatchQueue.main.asyncAfter(deadline: .now()+1.0){
+                    self.checkAuthorizationStatus()
+                }
+            } else {
+                print("💀 Authorization NOT Granted: \(error?.localizedDescription ?? "No error")")
+            }
+        }
+    }
+    
+    private func checkAuthorizationStatus() {
+        for type in typesToShare {
+            let status = healthStore.authorizationStatus(for: type)
+            switch status {
+            case .sharingAuthorized:
+                print("\(type.identifier): typesToShare✅ sharing Authorized")
+            case .sharingDenied:
+                print("\(type.identifier): typesToShare🛑 Reading Denied")
+            case .notDetermined:
+                print("\(type.identifier): typesToShare🔥 Not Determined")
+            @unknown default:
+                print("\(type.identifier): typesToShare🔥 Unknown Status")
+            }
+        }
+        for type in typesToRead {
+            let status = healthStore.authorizationStatus(for: type)
+            switch status {
+            case .sharingAuthorized:
+                print("\(type.identifier): typesToRead✅ Reading Authorized")
+            case .sharingDenied:
+                print("\(type.identifier): typesToRead🛑 Reading Denied")
+            case .notDetermined:
+                print("\(type.identifier): typesToRead🔥 Not Determined")
+            @unknown default:
+                print("\(type.identifier): typesToRead🔥 Unknown Status")
+            }
+        }
+    }
+    // Fetch user's age and height
+    func fetchUserData() {
+        do {
+            let birthDate = try healthStore.dateOfBirthComponents()
+            let currentYear = Calendar.current.component(.year, from: Date())
+            let age = currentYear - birthDate.year!
+            userAge = age
+            baselineHeartRate = Double(220 - age)
+            print("User's age: \(age)")
+        } catch {
+            print("Failed to fetch date of birth: \(error)")
+        }
+    }
     
     func startWorkout(workoutType: HKWorkoutActivityType) {
-        // 기존 세션이 있는 경우 초기화하여 중복 방지
         if session != nil || builder != nil {
             print("🔄 Existing session or builder found. Resetting before starting a new session.")
             resetWorkoutSession()
@@ -92,31 +147,25 @@ class WorkoutManager:NSObject,ObservableObject{
         
         let configuration = HKWorkoutConfiguration()
         configuration.activityType = workoutType
-        if workoutType == .functionalStrengthTraining || workoutType == .mindAndBody{
-            configuration.locationType =  .indoor
-        }else{
-            configuration.locationType =  .outdoor
-        }
-        
+        configuration.locationType = (workoutType == .functionalStrengthTraining || workoutType == .mindAndBody) ? .indoor : .outdoor
         
         do {
             session = try HKWorkoutSession(healthStore: healthStore, configuration: configuration)
             builder = session?.associatedWorkoutBuilder()
-            session?.delegate = self  // delegate 설정으로 상태 변화를 감지할 수 있도록 함
+            session?.delegate = self
             builder?.delegate = self
+            builder?.dataSource = HKLiveWorkoutDataSource(healthStore: healthStore, workoutConfiguration: configuration)
             
-            // DataSource 설정
-            builder?.dataSource = HKLiveWorkoutDataSource(
-                healthStore: healthStore,
-                workoutConfiguration: configuration
-            )
-            
-            // 세션 시작
             let startDate = Date()
             session?.startActivity(with: startDate)
-            startLocationUpdates()
-//            self.announceWorkoutStart(workoutType: workoutType)
-            self.builder?.beginCollection(withStart: startDate) { (success, error) in
+            
+            // 실외 운동인 경우 위치 업데이트 시작
+            if configuration.locationType == .outdoor {
+                
+                startLocationUpdates()
+            }
+            
+            builder?.beginCollection(withStart: startDate) { (success, error) in
                 if let error = error {
                     print("💀 Failed to start data collection: \(error.localizedDescription)")
                     self.resetWorkoutSession()
@@ -125,13 +174,14 @@ class WorkoutManager:NSObject,ObservableObject{
                 print("✅ Workout session started and data collection has begun.")
             }
             
-            
         } catch {
-            // 예외 처리: 세션 시작 중 문제가 발생한 경우
             print("💀 Failed to start workout session: \(error.localizedDescription)")
             resetWorkoutSession()
         }
     }
+
+    
+
     
     func resetWorkoutSession() {
         DispatchQueue.main.async {
@@ -169,30 +219,7 @@ class WorkoutManager:NSObject,ObservableObject{
         }
     }
     
-    func requestAuthorization() {
-        
-        healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
-            if success {
-                print("Authorization Granted")
-                self.fetchUserData()
-            } else {
-                print("💀 Authorization NOT Granted: \(error?.localizedDescription ?? "No error")")
-            }
-        }
-    }
-    // Fetch user's age and height
-    func fetchUserData() {
-        do {
-            let birthDate = try healthStore.dateOfBirthComponents()
-            let currentYear = Calendar.current.component(.year, from: Date())
-            let age = currentYear - birthDate.year!
-            userAge = age
-            baselineHeartRate = Double(220 - age)
-            print("User's age: \(age)")
-        } catch {
-            print("Failed to fetch date of birth: \(error)")
-        }
-    }
+    
     
     // MARK: - 상황제어 barco 241016
     @Published var running = false
@@ -356,6 +383,7 @@ extension WorkoutManager : CLLocationManagerDelegate{
     }
     
     func startLocationUpdates() {
+        print("✅ startUpdatingLocation")
             locationManager?.startUpdatingLocation()
         }
 

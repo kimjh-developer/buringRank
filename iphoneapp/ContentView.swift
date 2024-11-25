@@ -10,7 +10,7 @@ import HealthKit
 
 struct ContentView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
-    
+    @StateObject var locationManager  = LocationManager()
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
     @State private var moveNext : Bool = false
     var body: some View {
@@ -31,10 +31,15 @@ struct ContentView: View {
                     .frame(width: wsize*0.7)
             }
             .onAppear {
-                workoutManager.requestAuthorization()
-               
-                
+                locationManager.requestAuthorization { _ in}
             }
+            .onChange(of: locationManager.authorization, { oldValue, newValue in
+                if let value = newValue{
+                    if value == .authorizedAlways || value == .authorizedWhenInUse{
+                        workoutManager.requestAuthorization()
+                    }
+                }
+            })
             .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
                 if newValue == true{
                         moveNext.toggle()

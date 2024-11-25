@@ -10,7 +10,7 @@ import CoreLocation
 class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
     private let manager = CLLocationManager()
     @Published var currentLocation: CLLocation?
-
+    @Published var authorization : CLAuthorizationStatus?
     override init() {
         super.init()
         manager.delegate = self
@@ -35,6 +35,7 @@ class LocationManager: NSObject, ObservableObject, CLLocationManagerDelegate {
 
     func locationManager(_ manager: CLLocationManager, didChangeAuthorization status: CLAuthorizationStatus) {
         if status == .authorizedWhenInUse || status == .authorizedAlways {
+            authorization = status
             startUpdatingLocation()
         }
     }

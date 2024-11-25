@@ -82,9 +82,9 @@ struct Record: View {
                         summaryCell(item: row)
                     }
                     
-                    if row.summaryType == .distance{
+                    if row.summaryType == .distance && vm.selectDay != nil{
                         NavigationLink {
-                            MapRecord()
+                            MapRecord(chooseDay: workoutManager.chooseDay)
                         } label: {
                             HStack {
                                 ZStack {
