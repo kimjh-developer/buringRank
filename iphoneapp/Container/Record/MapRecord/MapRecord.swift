@@ -15,11 +15,17 @@ struct MapRecord: View {
     @StateObject private var vm = MapRecordVM()
     @State private var userLocation: CLLocationCoordinate2D?
     
+    @State var cumulativeDistance: String?
+    @State var cumulativeTime:String?
+    @State var EveragePace:String?
+    
+    
     var body: some View {
         ZStack {
             mapSection()
             decoration()
             cameraBtn()
+            
         }
         .onAppear(perform: {
             vm.requestAuthorization { success, error in
@@ -46,7 +52,7 @@ struct MapRecord: View {
     // MARK: - 지도영역
     @ViewBuilder
     private func mapSection() -> some View{
-        MapView(locations: $vm.locations, userLocation: $userLocation)
+        MapView(locations: $vm.locations, userLocation: $userLocation,CumulativeDistance: $cumulativeDistance,CumulativeTime: $cumulativeTime,EveragePace: $EveragePace)
             .onReceive(locationManager.$currentLocation) { location in
                 if let location = location {
                     userLocation = location.coordinate
@@ -60,10 +66,32 @@ struct MapRecord: View {
     private func decoration() -> some View{
         ZStack(alignment: .bottomTrailing) {
             Color.clear
-            Image("logoColor")
-                .resizable()
-                .aspectRatio(contentMode: .fit)
-                .frame(width: 100)
+            VStack(alignment: .trailing) {
+                if let value = cumulativeDistance{
+                    Text("이동거리")
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                    Text("\(value)km")
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                }
+                if let value = cumulativeTime{
+                    Text("이동시간")
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                    Text(value)
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                }
+                if let value = EveragePace{
+                    Text("평균페이스")
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                    Text(value)
+                        .style(fontName: .player,fontSize: 15,fontColor: .black)
+                }
+                
+                Image("logoColor")
+                    .resizable()
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 40)
+            }
+            
         }
         .padding(.trailing)
     }

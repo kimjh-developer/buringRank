@@ -35,8 +35,8 @@ class CalculateRecord {
             return .walk
         case .distance:
             return .distance
-        case .face:
-            return .face
+        case .pace:
+            return .pace
         }
     }
     
@@ -57,7 +57,7 @@ class CalculateRecord {
         switch summaryType {
         case .heartRate:
             return ["최고"]
-        case .face:
+        case .pace:
             return ["일평균", "최고"]
         default:
             return ["일평균", "일최고", "누적"]

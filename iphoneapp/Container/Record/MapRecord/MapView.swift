@@ -13,9 +13,10 @@ struct MapView: UIViewRepresentable {
     @Binding var userLocation: CLLocationCoordinate2D?
     @State private var annotations: [CustomAnnotation] = []
     
-    @State private var cumulativeDistance: CLLocationDistance = 0.0
-    @State private var cumulativeTime: TimeInterval = 0.0
-
+    @Binding var CumulativeDistance: String?
+    @Binding var CumulativeTime: String?
+    @Binding var EveragePace: String?
+    
     var lineColor: UIColor = .blue
     var lineWidth: CGFloat = 4.0
     
@@ -43,19 +44,20 @@ struct MapView: UIViewRepresentable {
             )
             uiView.setRegion(region, animated: true)
         }
-
+        
         // 경로 표시
         let coordinates = locations.map { $0.coordinate }
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-//        if !uiView.overlays.contains(where: { $0 is MKPolyline }) {
-            uiView.addOverlay(polyline)
-//        }
+        //        if !uiView.overlays.contains(where: { $0 is MKPolyline }) {
+        uiView.addOverlay(polyline)
+        //        }
         
         // 1km마다 핀 추가
         var totalDistance: CLLocationDistance = 0
         var segmentLocations: [CLLocation] = []
         var totalDuration: TimeInterval = 0
-        
+        var cumulativeDistance: CLLocationDistance = 0.0
+        var cumulativeTime: TimeInterval = 0.0
         
         // 새로운 핀만 추가
         if annotations.isEmpty {
@@ -64,8 +66,6 @@ struct MapView: UIViewRepresentable {
                 let currentLocation = locations[i]
                 
                 segmentLocations.append(previousLocation)
-
-                
                 
                 let distance = currentLocation.distance(from: previousLocation)
                 totalDistance += distance
@@ -96,19 +96,43 @@ struct MapView: UIViewRepresentable {
                         )
                         
                         // 핀 추가는 UI 관련 작업으로, 비동기로 처리
-                        DispatchQueue.main.async {
-                            uiView.addAnnotation(annotation)
-                        }
+                        //                        DispatchQueue.main.async {
+                        uiView.addAnnotation(annotation)
+                        //                        }
                         // `annotations`는 직접 수정하지 않음
                     }
                     
                     totalDistance -= 1000.0
                     segmentLocations.removeAll()
                 }
+                
+                if locations.count-1 == i{
+                    DispatchQueue.main.async {
+                        self.CumulativeDistance = (cumulativeDistance/1000).toString(withDecimalPlaces: 1)
+                        
+                        // TimeInterval -> "00:00:00" 형식으로 변환
+                        let hours = Int(cumulativeTime) / 3600
+                        let minutes = (Int(cumulativeTime) % 3600) / 60
+                        let seconds = Int(cumulativeTime) % 60
+                        self.CumulativeTime = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+                        
+                        // 평균 페이스 계산 (초/킬로미터 -> 분/킬로미터)
+                        if cumulativeDistance > 0 {
+                            let averagePaceInSeconds = cumulativeTime / (cumulativeDistance / 1000)
+                            let averagePaceMinutes = Int(averagePaceInSeconds) / 60
+                            let averagePaceSeconds = Int(averagePaceInSeconds) % 60
+                            
+                            // 평균 페이스 문자열로 저장
+                            let averagePaceString = String(format: "%d'%02d''/km", averagePaceMinutes, averagePaceSeconds)
+                            print("평균 페이스: \(averagePaceString)") // 디버깅용
+                            self.EveragePace = averagePaceString
+                        }
+                    }
+                }
             }
         }
     }
-
+    
     
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
@@ -116,7 +140,9 @@ struct MapView: UIViewRepresentable {
     
     // 케이던스 계산 (데이터가 제공되는 경우)
     private func calculateCadence(for locations: [CLLocation]) -> Double? {
-        
+        workoutManager.SummaryArray.filter {
+            $0.summaryType == .pace
+        }
         // 케이던스 계산 로직
         // 여기에 위치 기반의 케이던스를 계산하는 로직을 추가 (예: 발걸음 데이터가 필요함)
         return nil // 데이터가 없을 경우 nil 반환
@@ -143,19 +169,19 @@ struct MapView: UIViewRepresentable {
             guard let customAnnotation = annotation as? CustomAnnotation else {
                 return nil
             }
-
+            
             let identifier = "CustomPin"
             var annotationView = mapView.dequeueReusableAnnotationView(withIdentifier: identifier)
-
+            
             if annotationView == nil {
                 annotationView = MKAnnotationView(annotation: customAnnotation, reuseIdentifier: identifier)
                 annotationView!.canShowCallout = false
-
+                
                 // 핀 이미지
                 annotationView!.image = UIImage(systemName: "mappin.and.ellipse")
                 annotationView!.frame.size = CGSize(width: 20, height: 20)
                 annotationView!.tintColor = .systemRed
-
+                
                 // 정보 텍스트 추가
                 let label = UILabel()
                 let paceString = String(format: "%d'%02d''", customAnnotation.pace.0, customAnnotation.pace.1)
@@ -169,7 +195,7 @@ struct MapView: UIViewRepresentable {
                                     customAnnotation.cumulativeTime,
                                     paceString,
                                     customAnnotation.cadence != nil ? "\(customAnnotation.cadence!) spm" : "N/A")
-
+                
                 label.font = UIFont.systemFont(ofSize: 12)
                 label.textColor = .black
                 label.numberOfLines = 4
@@ -178,24 +204,24 @@ struct MapView: UIViewRepresentable {
                 label.layer.masksToBounds = true
                 label.textAlignment = .left
                 label.sizeToFit()
-
+                
                 // 레이블 추가
                 annotationView!.addSubview(label)
-
+                
                 // 텍스트 위치 조정
                 label.translatesAutoresizingMaskIntoConstraints = false
                 NSLayoutConstraint.activate([
                     label.leadingAnchor.constraint(equalTo: annotationView!.trailingAnchor, constant: 8),
                     label.centerYAnchor.constraint(equalTo: annotationView!.centerYAnchor)
                 ])
-
+                
             } else {
                 annotationView!.annotation = customAnnotation
             }
-
+            
             return annotationView
         }
-
+        
     }
 }
 class CustomAnnotation: NSObject, MKAnnotation {
@@ -205,7 +231,7 @@ class CustomAnnotation: NSObject, MKAnnotation {
     let pace: (Int, Int) // 페이스 (분, 초)
     let cadence: Double?
     let sequence: Int // 핀 순서를 나타내는 값
-
+    
     init(coordinate: CLLocationCoordinate2D,
          cumulativeDistance: Double,
          cumulativeTime: Double,

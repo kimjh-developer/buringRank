@@ -844,7 +844,7 @@ extension WorkoutManager {
             fetchWeeklyData(type: .heartRate, start: dateRange.start, end: dateRange.end) { samples in
                 self.processSamples(samples, for: summaryType, unit: HKUnit(from: "count/min"), timePeriod: timePeriod, completion: completion)
             }
-        case .face:
+        case .pace:
             // Face 관련 데이터는 특별한 처리가 필요하거나 가정된 데이터
             fetchWeeklyData(type: .heartRate, start: dateRange.start, end: dateRange.end) { samples in
                 self.processSamples(samples, for: summaryType, unit: HKUnit(from: "count/min"), timePeriod: timePeriod, completion: completion)
@@ -869,7 +869,7 @@ extension WorkoutManager {
             return
         }
         
-        if type == .face {
+        if type == .pace {
             checkYear(for: timePeriod) { samples in
                 let pace = self.calculatePace(from: samples) // 평균 페이스 계산
                 
@@ -885,13 +885,13 @@ extension WorkoutManager {
                 DispatchQueue.main.async {
                     self.summaryArray = [
                         SummaryRow(
-                            summaryType: .face,
+                            summaryType: .pace,
                             stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 평균 페이스", Updown: nil, Value: pace),
                             best: SummaryRowElement(Str: "페이스 최고 기록", Updown: nil, Value: bestPace),
                             duration: nil
                         )
                     ]
-                    print("FaceSummaryArray: \(self.summaryArray)")
+                    print("PaceSummaryArray: \(self.summaryArray)")
                     completion()
                 }
             }

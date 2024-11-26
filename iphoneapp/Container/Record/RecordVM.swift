@@ -135,7 +135,7 @@ struct SummaryRowElement :Equatable,Hashable {
     var Value : Double?
 }
 enum SummaryType:CaseIterable{
-    case heartRate,calorie,walk,distance,face,workoutDuration
+    case heartRate,calorie,walk,distance,pace,workoutDuration
     var element : SummaryElement{
         switch self {
         case .heartRate:
@@ -146,7 +146,7 @@ enum SummaryType:CaseIterable{
             return SummaryElement(title: "걸음수", measure: "걸음")
         case .distance:
             return SummaryElement(title: "이동거리", measure: "km")
-        case .face:
+        case .pace:
             return SummaryElement(title: "페이스", measure: "km/min")
         case .workoutDuration:
             return SummaryElement(title: "운동 시간") // 운동 시간 설명 추가
@@ -163,7 +163,7 @@ enum SummaryType:CaseIterable{
                return .stepCount
            case .distance:
                return .distanceWalkingRunning
-           case .face,.workoutDuration:
+           case .pace,.workoutDuration:
                return nil // Face 데이터는 별도의 처리가 필요하거나 미지원
            }
        }
