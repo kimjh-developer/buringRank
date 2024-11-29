@@ -7,10 +7,11 @@
 
 import SwiftUI
 import HealthKit
-
+import AuthenticationServices
 struct ContentView: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject var locationManager  = LocationManager()
+    @StateObject var userAthenicationVM = UserAthenicationVM()
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
     @State private var moveNext : Bool = false
     var body: some View {
@@ -29,10 +30,42 @@ struct ContentView: View {
                     .resizable()
                     .aspectRatio(contentMode: .fit)
                     .frame(width: wsize*0.7)
+                
+                VStack {
+                    Spacer()
+                    
+                    SignInWithAppleButton(
+                        .signIn,
+                        onRequest: { request in
+                            // 애플 로그인 요청 구성
+                            request.requestedScopes = [.fullName, .email]
+                        },
+                        onCompletion: { result in
+                            // 결과 처리
+    //                        vm.handleSignInWithAppleResult(result)
+                            userAthenicationVM.handleSignInWithAppleResult(result)
+                        }
+                    )
+                    .signInWithAppleButtonStyle(.white)
+                    .frame(height: 50)
+                    .padding()
+                }
+                .padding(.bottom,40)
+                
             }
             .onAppear {
-                locationManager.requestAuthorization { _ in}
+                userAthenicationVM.checkoutAthenicationPass(){result in
+                    if result{
+                        locationManager.requestAuthorization { _ in}
+                    }
+                }
+//
             }
+            .onChange(of: userAthenicationVM.AthenicationPass, { oldValue, newValue in
+                if newValue{
+                    locationManager.requestAuthorization { _ in}
+                }
+            })
             .onChange(of: locationManager.authorization, { oldValue, newValue in
                 if let value = newValue{
                     if value == .authorizedAlways || value == .authorizedWhenInUse{
@@ -73,6 +106,7 @@ struct ContentView: View {
 
 #Preview {
     ContentView()
+        .environmentObject(WorkoutManager())
 }
 
 

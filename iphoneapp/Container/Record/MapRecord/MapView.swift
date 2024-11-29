@@ -6,11 +6,18 @@
 import SwiftUI
 import MapKit
 import CoreLocation
+/*
+ .onReceive(locationManager.$currentLocation) { location in
+     if let location = location {
+         userLocation = location.coordinate
+     }
+ }
+ */
 
 struct MapView: UIViewRepresentable {
     @EnvironmentObject var workoutManager : WorkoutManager
-    @Binding var locations: [CLLocation]
-    @Binding var userLocation: CLLocationCoordinate2D?
+    var segments: [StepSegment]
+    var userCoordinate : CLLocationCoordinate2D?
     @State private var annotations: [CustomAnnotation] = []
     
     @Binding var CumulativeDistance: String?
@@ -19,6 +26,9 @@ struct MapView: UIViewRepresentable {
     
     var lineColor: UIColor = .blue
     var lineWidth: CGFloat = 4.0
+    
+    // 중복 핀 확인을 위한 목록
+    @State private var addedPinLocations: [CLLocationCoordinate2D] = []
     
     func makeUIView(context: Context) -> MKMapView {
         let mapView = MKMapView()
@@ -31,122 +41,222 @@ struct MapView: UIViewRepresentable {
     }
     
     func updateUIView(_ uiView: MKMapView, context: Context) {
-        guard !locations.isEmpty else {
+        guard !segments.isEmpty else {
             print("경로 데이터가 없습니다.")
             return
         }
-        
+
         // 내 위치로 확대하여 지도 표시
-        if let userCoordinate = userLocation {
+        if let userCoordinate = userCoordinate {
             let region = MKCoordinateRegion(
                 center: userCoordinate,
-                span: MKCoordinateSpan(latitudeDelta: 0.01, longitudeDelta: 0.01)
+                span: MKCoordinateSpan(latitudeDelta: 0.02, longitudeDelta: 0.02)
             )
             uiView.setRegion(region, animated: true)
         }
-        
+
         // 경로 표시
-        let coordinates = locations.map { $0.coordinate }
+        let coordinates = segments.flatMap { $0.locations.map { $0.coordinate } }
         let polyline = MKPolyline(coordinates: coordinates, count: coordinates.count)
-        //        if !uiView.overlays.contains(where: { $0 is MKPolyline }) {
         uiView.addOverlay(polyline)
-        //        }
+
         
+        
+
         // 1km마다 핀 추가
         var totalDistance: CLLocationDistance = 0
-        var segmentLocations: [CLLocation] = []
-        var totalDuration: TimeInterval = 0
         var cumulativeDistance: CLLocationDistance = 0.0
         var cumulativeTime: TimeInterval = 0.0
-        
-        // 새로운 핀만 추가
-        if annotations.isEmpty {
-            for i in 1..<locations.count {
-                let previousLocation = locations[i - 1]
-                let currentLocation = locations[i]
-                
-                segmentLocations.append(previousLocation)
-                
+        var avgTime: [TimeInterval] = []
+        var segmentLocations: [CLLocation] = []
+        var totalStep: [Int] = []
+
+//        var lastLocation: CLLocation?  마지막 위치를 저장
+
+        // `for segment in segments` 루프
+        for segment in segments {
+            guard let steps = segment.steps else { continue } // 걸음 수가 없는 경우 무시
+            for i in 1..<segment.locations.count {
+                let previousLocation = segment.locations[i - 1]
+                let currentLocation = segment.locations[i]
+//                lastLocation = currentLocation // 마지막 위치 갱신
+
                 let distance = currentLocation.distance(from: previousLocation)
                 totalDistance += distance
                 cumulativeDistance += distance
-                
-                let timeInterval = currentLocation.timestamp.timeIntervalSince(previousLocation.timestamp)
-                totalDuration += timeInterval
-                cumulativeTime += timeInterval
-                if totalDistance >= 1000 || i == locations.count - 1 {
+
+                cumulativeTime += currentLocation.timestamp.timeIntervalSince(previousLocation.timestamp)
+                segmentLocations.append(previousLocation)
+
+                totalStep.append(steps)
+                avgTime.append(currentLocation.timestamp.timeIntervalSince(previousLocation.timestamp))
+
+                if totalDistance >= 1000 {
                     segmentLocations.append(currentLocation)
-                    
+
                     let segmentTime = segmentLocations.last!.timestamp.timeIntervalSince(segmentLocations.first!.timestamp)
-                    
+
                     if segmentTime > 0 {
-                        let maxSpeed = segmentLocations.map { $0.speed }.max() ?? 0.0
-                        let maxSpeedKmH = maxSpeed * 3.6
-                        let maxPaceInSeconds = maxSpeedKmH > 0 ? 3600 / maxSpeedKmH : Double.infinity
-                        let paceMinutes = Int(maxPaceInSeconds) / 60
-                        let paceSeconds = Int(maxPaceInSeconds) % 60
+                        // 케이던스 계산 (1km 기준)
+                        let stepSum = totalStep.reduce(0, +) // 걸음 수 합계
+                        let totalAvgTime = avgTime.reduce(0, +) // 평균 시간 총합
+
+                        let cadence: Int = totalAvgTime > 0 ? Int(Double(stepSum) / totalAvgTime * 60 / 100) : 0
+
+                        // 평균 페이스 계산
+                        let paceInSeconds = segmentTime / (totalDistance / 1000)
+                        let paceMinutes = Int(paceInSeconds) / 60
+                        let paceSeconds = Int(paceInSeconds) % 60
+
+                        let annotationCoordinate = segmentLocations[segmentLocations.count / 2].coordinate
                         
-                        let annotation = CustomAnnotation(
-                            coordinate: segmentLocations[segmentLocations.count / 2].coordinate,
-                            cumulativeDistance: cumulativeDistance / 1000,
-                            cumulativeTime: totalDuration / 60,
-                            pace: (paceMinutes, paceSeconds),
-                            cadence: calculateCadence(for: segmentLocations),
-                            sequence: annotations.count + 1
-                        )
+                        // 중복 확인
+                        if !self.addedPinLocations.contains(where: { $0.latitude == annotationCoordinate.latitude && $0.longitude == annotationCoordinate.longitude }) {
+                            // 좌표가 중복되지 않으면 추가
+                            
+                            
+                            let annotation = CustomAnnotation(
+                                coordinate: annotationCoordinate,
+                                cumulativeDistance: cumulativeDistance / 1000,
+                                cumulativeTime: cumulativeTime / 60,
+                                pace: (paceMinutes, paceSeconds),
+                                cadence: Double(cadence),
+                                sequence: addedPinLocations.count
+                            )
+
+                            DispatchQueue.main.async {
+                                self.addedPinLocations.append(annotationCoordinate)
+                                uiView.addAnnotation(annotation)
+                                print("핀 추가: \(annotation.coordinate.latitude), \(annotation.coordinate.longitude)")
+                            }
+                        } else {
+                            print("중복 핀 발견: \(annotationCoordinate.latitude), \(annotationCoordinate.longitude)")
+                        }
                         
-                        // 핀 추가는 UI 관련 작업으로, 비동기로 처리
-                        //                        DispatchQueue.main.async {
-                        uiView.addAnnotation(annotation)
-                        //                        }
-                        // `annotations`는 직접 수정하지 않음
                     }
-                    
+
+                    // 1km 처리 후 초기화
+                    totalStep.removeAll()
+                    avgTime.removeAll()
                     totalDistance -= 1000.0
-                    segmentLocations.removeAll()
+
+                    segmentLocations = [currentLocation] // 마지막 위치를 다음 구간의 시작으로
                 }
                 
-                if locations.count-1 == i{
-                    DispatchQueue.main.async {
-                        self.CumulativeDistance = (cumulativeDistance/1000).toString(withDecimalPlaces: 1)
-                        
-                        // TimeInterval -> "00:00:00" 형식으로 변환
-                        let hours = Int(cumulativeTime) / 3600
-                        let minutes = (Int(cumulativeTime) % 3600) / 60
-                        let seconds = Int(cumulativeTime) % 60
-                        self.CumulativeTime = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
-                        
-                        // 평균 페이스 계산 (초/킬로미터 -> 분/킬로미터)
-                        if cumulativeDistance > 0 {
-                            let averagePaceInSeconds = cumulativeTime / (cumulativeDistance / 1000)
-                            let averagePaceMinutes = Int(averagePaceInSeconds) / 60
-                            let averagePaceSeconds = Int(averagePaceInSeconds) % 60
-                            
-                            // 평균 페이스 문자열로 저장
-                            let averagePaceString = String(format: "%d'%02d''/km", averagePaceMinutes, averagePaceSeconds)
-                            print("평균 페이스: \(averagePaceString)") // 디버깅용
-                            self.EveragePace = averagePaceString
+                
+            }
+
+            // 마지막 세그먼트 처리
+            if segment == segments.last {
+                
+                if let lastCoordinate = segment.locations.last?.coordinate {
+                    // CLLocationCoordinate2D -> CLLocation 변환
+                    let lastLocation = CLLocation(latitude: lastCoordinate.latitude, longitude: lastCoordinate.longitude)
+                    var addedPinLocationsAsCLLocation = addedPinLocations.map {
+                        CLLocation(latitude: $0.latitude, longitude: $0.longitude)
+                    }
+                    
+                    
+                    if let lastCoordinate = segmentLocations.last?.coordinate{
+                        if !self.addedPinLocations.contains(where: { $0.latitude == lastCoordinate.latitude && $0.longitude == lastCoordinate.longitude }) {
+                            DispatchQueue.main.async {
+                                self.addedPinLocations.append(lastCoordinate)
+                                print("마지막핀 추가: \(lastCoordinate.latitude), \(lastCoordinate.longitude)")
+                                lastPin(
+                                    uiView: uiView,
+                                    addedPinLocations: &addedPinLocationsAsCLLocation, // 변환된 배열 전달
+                                    segmentLocations: segmentLocations,
+                                    cumulativeDistance: cumulativeDistance,
+                                    cumulativeTime: cumulativeTime,
+                                    totalStep: totalStep,
+                                    avgTime: avgTime
+                                )
+                            }
+                        }else{
+                            print("중복 마지막핀 발견: \(lastCoordinate.latitude), \(lastCoordinate.longitude)")
                         }
                     }
                 }
             }
+
+        }
+
+        // 누적 정보 업데이트
+        DispatchQueue.main.async {
+            self.CumulativeDistance = (cumulativeDistance / 1000).toString(withDecimalPlaces: 1)
+            // TimeInterval -> "00:00:00" 형식으로 변환
+            let hours = Int(cumulativeTime) / 3600
+            let minutes = (Int(cumulativeTime) % 3600) / 60
+            let seconds = Int(cumulativeTime) % 60
+            self.CumulativeTime = String(format: "%02d:%02d:%02d", hours, minutes, seconds)
+            
+            // 평균 페이스 계산 (초/킬로미터 -> 분/킬로미터)
+                                   if cumulativeDistance > 0 {
+                                       let averagePaceInSeconds = cumulativeTime / (cumulativeDistance / 1000)
+                                       let averagePaceMinutes = Int(averagePaceInSeconds) / 60
+                                       let averagePaceSeconds = Int(averagePaceInSeconds) % 60
+                                       
+                                       // 평균 페이스 문자열로 저장
+                                       let averagePaceString = String(format: "%d'%02d''/km", averagePaceMinutes, averagePaceSeconds)
+                                       print("평균 페이스: \(averagePaceString)") // 디버깅용
+                                       self.EveragePace = averagePaceString
+                                   }
         }
     }
+
+
+
+    func lastPin(uiView: MKMapView, addedPinLocations: inout [CLLocation], segmentLocations: [CLLocation], cumulativeDistance: CLLocationDistance, cumulativeTime: TimeInterval, totalStep: [Int], avgTime: [TimeInterval]) {
+        guard let lastLocation = segmentLocations.last else { return }
+        
+        let annotationCoordinate = lastLocation.coordinate
+        let annotationLocation = CLLocation(latitude: annotationCoordinate.latitude, longitude: annotationCoordinate.longitude)
+        
+        let stepSum = totalStep.reduce(0, +) // 걸음 수 합계
+        let totalAvgTime = avgTime.reduce(0, +) // 평균 시간 총합
+        
+        // 케이던스 계산
+        let cadence: Int = totalAvgTime > 0 ? Int(Double(stepSum) / totalAvgTime * 60 / 100) : 0
+        
+        // 평균 페이스 계산
+        let segmentTime = segmentLocations.last!.timestamp.timeIntervalSince(segmentLocations.first!.timestamp)
+        let paceInSeconds = segmentTime / (cumulativeDistance / 1000)
+        let paceMinutes = Int(paceInSeconds) / 60
+        let paceSeconds = Int(paceInSeconds) % 60
+        
+        // 중복 핀 확인
+        let isNearby = addedPinLocations.contains { $0.distance(from: annotationLocation) < 500 }
+        
+        if !isNearby {
+            addedPinLocations.append(annotationLocation)
+            
+            let annotation = CustomAnnotation(
+                coordinate: annotationCoordinate,
+                cumulativeDistance: cumulativeDistance / 1000,
+                cumulativeTime: cumulativeTime / 60,
+                pace: (paceMinutes, paceSeconds),
+                cadence: Double(cadence),
+                sequence: addedPinLocations.count
+            )
+            
+            DispatchQueue.main.async {
+                uiView.addAnnotation(annotation)
+                print("마지막 핀 추가: \(annotation.coordinate.latitude), \(annotation.coordinate.longitude)")
+            }
+        } else {
+            print("마지막 핀 중복으로 추가하지 않음: \(annotationCoordinate.latitude), \(annotationCoordinate.longitude)")
+        }
+    }
+
+
     
     
     func makeCoordinator() -> Coordinator {
         Coordinator(self)
     }
     
-    // 케이던스 계산 (데이터가 제공되는 경우)
-    private func calculateCadence(for locations: [CLLocation]) -> Double? {
-        workoutManager.SummaryArray.filter {
-            $0.summaryType == .pace
-        }
-        // 케이던스 계산 로직
-        // 여기에 위치 기반의 케이던스를 계산하는 로직을 추가 (예: 발걸음 데이터가 필요함)
-        return nil // 데이터가 없을 경우 nil 반환
-    }
+    
+    
     
     class Coordinator: NSObject, MKMapViewDelegate {
         var parent: MapView
@@ -247,4 +357,7 @@ class CustomAnnotation: NSObject, MKAnnotation {
         super.init()
     }
 }
+
+
+
 

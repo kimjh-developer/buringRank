@@ -1,9 +1,15 @@
 import Foundation
 import HealthKit
 import CoreLocation
+
+struct StepSegment : Equatable {
+    let locations: [CLLocation]
+    let steps: Int? // 구간 걸음수
+}
+
 class MapRecordVM: ObservableObject {
     let healthStore = HKHealthStore()
-    @Published var locations: [CLLocation] = []
+    @Published var segments: [StepSegment] = []
     // 읽기 권한 요청할 데이터 타입 설정
     let typesToRead: Set<HKObjectType> = [
         HKObjectType.workoutType(),
@@ -79,22 +85,22 @@ class MapRecordVM: ObservableObject {
     private func fetchRoute(for workout: HKWorkout) {
         let routeType = HKSeriesType.workoutRoute()
         let predicate = HKQuery.predicateForObjects(from: workout)
-        
+
         let query = HKAnchoredObjectQuery(type: routeType, predicate: predicate, anchor: nil, limit: HKObjectQueryNoLimit) { [weak self] _, samples, _, _, error in
-            
+
             if let error = error {
                 print("경로 데이터 쿼리 오류: \(error.localizedDescription)")
                 return
             }
-            
+
             guard let self = self, let routes = samples as? [HKWorkoutRoute], !routes.isEmpty else {
                 print("❌ 경로 데이터가 없습니다.")
                 return
             }
-            
-            var allLocations: [CLLocation] = []
+
+            var segments: [StepSegment] = []
             let dispatchGroup = DispatchGroup()
-            
+
             for route in routes {
                 dispatchGroup.enter()
                 let routeQuery = HKWorkoutRouteQuery(route: route) { _, locations, done, error in
@@ -102,7 +108,9 @@ class MapRecordVM: ObservableObject {
                         print("경로 쿼리 중 오류 발생: \(error.localizedDescription)")
                     }
                     if let locations = locations {
-                        allLocations.append(contentsOf: locations)
+                        self.processLocations(locations, workout: workout) { segment in
+                            segments.append(segment)
+                        }
                     }
                     if done {
                         dispatchGroup.leave()
@@ -110,15 +118,50 @@ class MapRecordVM: ObservableObject {
                 }
                 self.healthStore.execute(routeQuery)
             }
-            
+
             dispatchGroup.notify(queue: .main) {
-                self.locations = allLocations
-                print("총 \(allLocations.count)개의 위치 데이터를 가져왔습니다.")
+                self.segments = segments
+                print("총 \(self.segments.count)개의 세그먼트 데이터를 가져왔습니다.")
             }
         }
-        
+
         healthStore.execute(query)
     }
+
+    private func processLocations(_ locations: [CLLocation], workout: HKWorkout, completion: @escaping (StepSegment) -> Void) {
+        guard locations.count > 1 else { return }
+
+        let startLocation = locations.first!
+        let endLocation = locations.last!
+        let predicate = HKQuery.predicateForSamples(
+            withStart: startLocation.timestamp,
+            end: endLocation.timestamp,
+            options: .strictStartDate
+        )
+        let stepType = HKQuantityType.quantityType(forIdentifier: .stepCount)!
+
+        let query = HKStatisticsQuery(quantityType: stepType, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, statistics, error in
+            var Steps = 0
+            if let error = error {
+                print("걸음수 쿼리 오류: \(error.localizedDescription)")
+            } else if let sum = statistics?.sumQuantity() {
+                Steps = Int(sum.doubleValue(for: HKUnit.count()))
+            }
+
+            let segment = StepSegment(locations: locations, steps: Steps)
+            DispatchQueue.main.async {
+                completion(segment)
+//                print("""
+//                위치: \(locations.first?.coordinate ?? CLLocationCoordinate2D())
+//                종료 위치: \(locations.last?.coordinate ?? CLLocationCoordinate2D())
+//                걸음수: \(Steps)
+//                """)
+            }
+        }
+
+        healthStore.execute(query)
+    }
+
 }
 
 

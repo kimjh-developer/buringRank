@@ -195,9 +195,16 @@ class WorkoutManager:NSObject,ObservableObject{
                     }
                     
                     // 이번 주 최고 심박수 계산
-                    let maxThisWeek = thisWeekSamples.max(by: {
-                        $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
-                    })?.quantity.doubleValue(for: measureUnit) ?? 0
+                    let maxThisWeek = thisWeekSamples
+                        .map { $0.quantity.doubleValue(for: measureUnit) }
+                        .max() ?? 0
+
+                    
+                    if summaryType == .heartRate{
+                        DispatchQueue.main.async {
+                            self.ThismaxHeartRate = maxThisWeek
+                        }
+                    }
                     
                     // 이번 주 요일별 데이터 수집
                     thisWeekSamples.forEach { sample in
@@ -226,7 +233,7 @@ class WorkoutManager:NSObject,ObservableObject{
                         } else {
                             self.SummaryArray.append(newRow)
                         }
-                        print("SummaryArray:\(self.SummaryArray)")
+//                        print("SummaryArray:\(self.SummaryArray)")
                         // 최고 심박수 출력 (디버깅용)
                         if summaryType == .heartRate {
                             print("이번 주 최고 심박수: \(maxThisWeek) BPM")
@@ -318,18 +325,50 @@ class WorkoutManager:NSObject,ObservableObject{
         func fetchAndCompare(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryType) {
             fetchWeeklyData(type: type, start: startOfLastWeekSameDay, end: endOfLastWeekSameDay) { lastWeekSamples in
                 // 지난주 최고 심박수 계산
-                let maxLastWeek = lastWeekSamples?.max(by: {
-                    $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
-                })?.quantity.doubleValue(for: measureUnit) ?? 0
+                var maxLastWeek : Double = 0.0
+                var maxThisWeek : Double = 0.0
+                
+                if type == .heartRate{
+                    maxLastWeek = lastWeekSamples?.max(by: {
+                        $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
+                    })?.quantity.doubleValue(for: measureUnit) ?? 0
+                }else{
+                    maxLastWeek = lastWeekSamples?.reduce(0){
+                        $0 + $1.quantity.doubleValue(for: measureUnit)
+                    } ?? 0
+                }
+                
+                
                 
                 self.fetchWeeklyData(type: type, start: startOfSelectedDay, end: endOfSelectedDay) { thisWeekSamples in
                     // 이번 주 최고 심박수 계산
-                    let maxThisDay = thisWeekSamples?.max(by: {
-                        $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
-                    })?.quantity.doubleValue(for: measureUnit) ?? 0
+//                    let maxThisDay = thisWeekSamples?.max(by: {
+//                        $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
+//                    })?.quantity.doubleValue(for: measureUnit) ?? 0
+                    
+                    
+                    if let thisWeekSamples = thisWeekSamples{
+                        if summaryType == .heartRate{
+                            maxThisWeek = thisWeekSamples
+                                .map { $0.quantity.doubleValue(for: measureUnit) }
+                                .max() ?? 0
+                            DispatchQueue.main.async {
+                                self.ThismaxHeartRate = maxThisWeek
+                            }
+                        }else{
+                            maxThisWeek = thisWeekSamples.reduce(0){
+                                $0 + $1.quantity.doubleValue(for: measureUnit)
+                            }
+                        }
+                        
+                        
+
+                    }
+                    
+                    
                     
                     // 차이 계산
-                    let difference = maxThisDay - maxLastWeek
+                    let difference = maxThisWeek - maxLastWeek
                     
                     DispatchQueue.main.async {
                         if summaryType == .heartRate {
@@ -347,12 +386,12 @@ class WorkoutManager:NSObject,ObservableObject{
                             let newRow = SummaryRow(
                                 summaryType: summaryType,
                                 stack: SummaryRowElement(
-                                    Str: "\(calendar.component(.month, from: date))월 \(calendar.component(.day, from: date))일 최고",
+                                    Str: "\(calendar.component(.month, from: date))월 \(calendar.component(.day, from: date))일",
                                     Updown: Int(difference),
-                                    Value: maxThisDay
+                                    Value: maxThisWeek
                                 ),
                                 best: SummaryRowElement(
-                                    Str: "\(month)월 \(day)일 최고",
+                                    Str: "\(month)월 \(day)일",
                                     Updown: nil,
                                     Value: maxLastWeek
                                 ),
@@ -364,6 +403,7 @@ class WorkoutManager:NSObject,ObservableObject{
                             } else {
                                 self.SummaryArray.append(newRow)
                             }
+                            print("✅SummaryArray:\(self.SummaryArray)\n")
                         }
                     }
                 }
@@ -383,6 +423,7 @@ class WorkoutManager:NSObject,ObservableObject{
             print("Invalid weekday selected.")
             return
         }
+        SummaryArray.removeAll()
         chooseDay = selectedDate
         getDailyComparisonData(for: selectedDate)
     }

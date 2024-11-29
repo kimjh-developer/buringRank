@@ -196,7 +196,7 @@ struct Record: View {
                     }
                 }
                 
-                Text("\(Int(workoutManager.getMaxHeartRate() ?? 0).addComma()) BPM")
+                Text("\(Int(workoutManager.ThismaxHeartRate ?? 0).addComma()) BPM")
                     .style(fontName: .player, fontSize: 20, fontColor: .white)
             }
             

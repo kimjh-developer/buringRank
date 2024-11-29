@@ -45,4 +45,28 @@ extension Int{
         }
 }
 
+extension Array where Element == Int {
+    func average() -> Double? {
+        guard !self.isEmpty else { return nil }
+        let sum = self.reduce(0, +)
+        return Double(sum) / Double(self.count)
+    }
+    
+    func total() -> Int {
+       return self.reduce(0, +)
+    }
+}
+extension Array where Element == TimeInterval {
+    /// 배열의 평균을 계산합니다. 배열이 비어있으면 `nil`을 반환합니다.
+    func average() -> TimeInterval? {
+        guard !self.isEmpty else { return nil }
+        let total = self.reduce(0, +) // 합계를 계산
+        return total / TimeInterval(self.count) // 평균 계산
+    }
+    
+    func total() -> TimeInterval {
+        return self.reduce(0, +)
+        }
+}
+
 
