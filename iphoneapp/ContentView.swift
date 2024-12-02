@@ -49,6 +49,15 @@ struct ContentView: View {
                     .signInWithAppleButtonStyle(.white)
                     .frame(height: 50)
                     .padding()
+                    
+                    Button {
+                        moveNext.toggle()
+                    } label: {
+                        Text("로그인없이 버닝랭크이용하기")
+                            .style(fontName: .klight, fontSize: 12, fontColor: .white)
+                            .underline()
+                    }
+
                 }
                 .padding(.bottom,40)
                 

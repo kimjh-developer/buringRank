@@ -10,8 +10,10 @@ import HealthKit
 struct Burning: View {
     @EnvironmentObject var workoutManager: WorkoutManager
     let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
-    var workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking,.mindAndBody,]
+    var workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking]//,.mindAndBody,]
     @State var nextPageActivate : Bool = false
+    
+    @StateObject var storeManager = StoreManager()
     var body: some View {
         
         VStack {
@@ -25,6 +27,8 @@ struct Burning: View {
             .padding()
             Spacer()
             
+//            purchases()
+            
             Button {
                 if workoutManager.selectedWorkout != nil{
                     nextPageActivate = true
@@ -35,9 +39,14 @@ struct Burning: View {
                     .padding()
             }
         }
-//        .navigationDestination(isPresented: $nextPageActivate) { // LazyVGrid 외부로 이동
+        .navigationDestination(isPresented: $nextPageActivate) { // LazyVGrid 외부로 이동
+            if workoutManager.selectedWorkout == .functionalStrengthTraining{
+                Counter()
+            }else{
+                Tracker()
+            }
 //                    SelectWorkoutLevel(workoutDone: $nextPageActivate)
-//                }
+        }
         
     }
     // MARK: - cell
@@ -61,6 +70,40 @@ struct Burning: View {
             
             .cornerRadius(10)
         }
+    }
+    
+    // MARK: - 구독
+    @ViewBuilder
+    private func purchases() -> some View{
+        VStack(spacing: 20) {
+                   Text("구독 상태: \(storeManager.subscriptionStatus ? "활성화됨" : "비활성화됨")")
+                       .font(.headline)
+                       .padding()
+
+                   List(storeManager.products, id: \.id) { product in
+                       VStack(alignment: .leading) {
+                           Text(product.displayName)
+                               .font(.headline)
+                           Text(product.description)
+                               .font(.subheadline)
+                           Button(action: {
+                               Task {
+                                   await storeManager.purchase(product)
+                               }
+                           }) {
+                               Text("\(product.displayPrice)로 구독")
+                           }
+                       }
+                   }
+               }
+        .background(content: {
+            Color.white
+        })
+               .onAppear {
+                   Task {
+                       await storeManager.requestProducts()
+                   }
+               }
     }
 }
 

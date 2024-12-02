@@ -36,6 +36,8 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		040DF3492CFD529D0004FE47 /* StoreKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKit.framework; path = System/Library/Frameworks/StoreKit.framework; sourceTree = SDKROOT; };
+		040DF34B2CFD52AA0004FE47 /* StoreKitTest.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = StoreKitTest.framework; path = Platforms/iPhoneOS.platform/Developer/Library/Frameworks/StoreKitTest.framework; sourceTree = DEVELOPER_DIR; };
 		0458248E2CC1E7F9005D3889 /* iphoneapp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = iphoneapp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		045824A32CC1EA42005D3889 /* watchApp Watch App.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "watchApp Watch App.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -104,11 +106,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		040DF3482CFD529D0004FE47 /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+				040DF34B2CFD52AA0004FE47 /* StoreKitTest.framework */,
+				040DF3492CFD529D0004FE47 /* StoreKit.framework */,
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		045824852CC1E7F9005D3889 = {
 			isa = PBXGroup;
 			children = (
 				045824902CC1E7F9005D3889 /* iphoneapp */,
 				045824A42CC1EA42005D3889 /* watchApp Watch App */,
+				040DF3482CFD529D0004FE47 /* Frameworks */,
 				0458248F2CC1E7F9005D3889 /* Products */,
 			);
 			sourceTree = "<group>";

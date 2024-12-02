@@ -8,6 +8,7 @@
 import Foundation
 import AuthenticationServices
 class UserAthenicationVM:ObservableObject{
+    let userdefaultKey = "appleUserIdentifier"
     @Published var AthenicationPass : Bool = false
     
     func checkoutAthenicationPass(completion : @escaping (Bool)->Void){
@@ -20,15 +21,21 @@ class UserAthenicationVM:ObservableObject{
         switch result {
         case .success(let authResults):
             checkoutAthenicationPass { result in
-                if result{//데이터가 없으면 새로 넣음
+                if !result { // 데이터가 없으면 새로 넣음
                     if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
                         // 사용자 정보 추출
-                            var userInformation = UserInformation()
-                            userInformation.userIdentifier = credential.user
-                            userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
-                            userInformation.userEmail = credential.email
-                            UserDefaults.standard.set(userInformation, forKey: "appleUserIdentifier")
-                        
+                        var userInformation = UserInformation()
+                        userInformation.userIdentifier = credential.user
+                        userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
+                        userInformation.userEmail = credential.email
+                        // Encode to Data
+                        do {
+                            let encodedData = try JSONEncoder().encode(userInformation)
+                            UserDefaults.standard.set(encodedData, forKey: self.userdefaultKey)
+                            print("Set UserDefaults successfully")
+                        } catch {
+                            print("Failed to encode UserInformation: \(error)")
+                        }
                     }
                 }
                 self.AthenicationPass = true
@@ -46,18 +53,21 @@ class UserAthenicationVM:ObservableObject{
             // 구조체를 JSON 데이터로 변환
             let data = try encoder.encode(userInformation)
             // UserDefaults에 JSON 데이터 저장
-            UserDefaults.standard.set(data, forKey: "appleUserIdentifier")
+            UserDefaults.standard.set(data, forKey: userdefaultKey)
         } catch {
             print("Failed to encode UserInformation: \(error.localizedDescription)")
         }
     }
-
     
     func loadUserInformation() -> UserInformation? {
-        if let savedData = UserDefaults.standard.data(forKey: "appleUserInformation") {
-            let decoder = JSONDecoder()
-            if let loadedUserInformation = try? decoder.decode(UserInformation.self, from: savedData) {
-                return loadedUserInformation
+        if let savedData = UserDefaults.standard.data(forKey: userdefaultKey) {
+            do {
+                let userInformation = try JSONDecoder().decode(UserInformation.self, from: savedData)
+                print("Retrieved UserInformation: \(userInformation)")
+                return userInformation
+            } catch {
+                print("Failed to decode UserInformation: \(error)")
+                return nil
             }
         }
         return nil
