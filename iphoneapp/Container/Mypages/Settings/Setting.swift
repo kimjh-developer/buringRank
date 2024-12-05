@@ -10,8 +10,8 @@ import SwiftUI
 struct Setting: View {
     @Environment(\.dismiss) var dismiss
     @State var pushActivate : Bool = true
-    
-    
+    @State var logoutActivate : Bool = false
+    @Binding var backToSplash : Bool
     var body: some View {
         ZStack {
             Color.white
@@ -42,13 +42,54 @@ struct Setting: View {
                     .padding()
                     Divider()
                 }
-                moreview(title: "이용약관")
-                moreview(title: "개인정보처리방침")
+                NavigationLink {
+                    DocumentPages(userDocument: .termCondition)
+                } label: {
+                    moreview(title: "이용약관")
+                }
+                NavigationLink {
+                    DocumentPages(userDocument: .termCondition)
+                } label: {
+                    moreview(title: "개인정보처리방침")
+                }
                 Spacer()
+                
+                
+                VStack {
+                    HStack {
+                        Button {
+                            logoutActivate.toggle()
+                        } label: {
+                            Text("로그아웃")
+                                .style(fontName: .klight, fontSize: 16, fontColor: .black)
+                            Spacer()
+                        }
+                    }
+                    .padding()
+                    Divider()
+                }
             }
             
+            
         }
-        
+        .alert(isPresented: $logoutActivate) {
+                    Alert(
+                        title: Text("버닝랭크를 로그아웃하시겠습니까?"),
+                        primaryButton: .default(Text("로그아웃")) {
+                            UserAthenicationVM().loadUserInformation(completion: { userinformation in
+                                if var userInfo = userinformation { // 복사본 생성
+                                    userInfo.isTerminate = true
+                                    UserAthenicationVM().saveUserInformation(userInfo)
+                                    UserInformationManager.shared.userInformation = nil
+                                }
+                            })
+                            backToSplash = true
+                            dismiss()
+                        },
+                        secondaryButton: .cancel(Text("취소"))
+                    )
+                }
+                .foregroundColor(.black) // 텍스트 색상 강제 적용
         .toolbar {
                     ToolbarItem(placement: .navigationBarLeading) {
                         Button(action: {
@@ -85,5 +126,5 @@ struct Setting: View {
 }
 
 #Preview {
-    Setting()
+    Setting(backToSplash: .constant(false))
 }

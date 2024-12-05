@@ -11,40 +11,60 @@ class UserAthenicationVM:ObservableObject{
     let userdefaultKey = "appleUserIdentifier"
     @Published var AthenicationPass : Bool = false
     
-    func checkoutAthenicationPass(completion : @escaping (Bool)->Void){
-        
-            completion(loadUserInformation() != nil)
-        
+    func checkoutAthenicationPass(completion:@escaping (Bool)->Void){
+        loadUserInformation { result in
+            if let isTerminate = result?.isTerminate{
+                if !isTerminate{
+                    self.AthenicationPass = true
+                    completion(true)
+                }
+            }
+        }
+        completion(false)
     }
     
-    func handleSignInWithAppleResult(_ result: Result<ASAuthorization, Error>) {
+    func handleSignInWithAppleResult(_ result: Result<ASAuthorization, Error>,completion:@escaping (Bool)->Void) {
         switch result {
         case .success(let authResults):
-            checkoutAthenicationPass { result in
-                if !result { // 데이터가 없으면 새로 넣음
-                    if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
-                        // 사용자 정보 추출
-                        var userInformation = UserInformation()
-                        userInformation.userIdentifier = credential.user
-                        userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
-                        userInformation.userEmail = credential.email
-                        // Encode to Data
-                        do {
-                            let encodedData = try JSONEncoder().encode(userInformation)
-                            UserDefaults.standard.set(encodedData, forKey: self.userdefaultKey)
-                            print("Set UserDefaults successfully")
-                        } catch {
-                            print("Failed to encode UserInformation: \(error)")
+            // 데이터가 Z없으면 새로 넣음
+            if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
+                // 사용자 정보 추출
+                
+                
+                loadExistUserInformation { existInfo in
+                    if var info = existInfo{
+                        if info.userIdentifier ?? "" == credential.user{
+                            info.isTerminate = false
+                            self.saveUserInformation(info)
+                            UserInformationManager.shared.userInformation = info
+                        }else{
+                            self.registMember(credential: credential)
                         }
+                    }else{
+                        self.registMember(credential: credential)
                     }
                 }
-                self.AthenicationPass = true
             }
-            
+            self.AthenicationPass = true
+            completion(true)
         case .failure(let error):
             // 에러 처리
             print("Authorization failed: \(error.localizedDescription)")
+            completion(false)
         }
+        completion(false)
+    }
+    
+    private func registMember(credential : ASAuthorizationAppleIDCredential){
+        var userInformation = UserInformation()
+        userInformation.userIdentifier = credential.user
+        userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
+        userInformation.userEmail = credential.email
+        
+        saveUserInformation(userInformation)
+        UserInformationManager.shared.userInformation = userInformation
+        print("Set UserDefaults successfully")
+        
     }
     
     func saveUserInformation(_ userInformation: UserInformation) {
@@ -59,37 +79,70 @@ class UserAthenicationVM:ObservableObject{
         }
     }
     
-    func loadUserInformation() -> UserInformation? {
+    func deleteUserInformation() {
+        UserDefaults.standard.removeObject(forKey: userdefaultKey)
+        print("User information has been deleted.")
+    }
+    
+    
+    
+    func loadUserInformation(completion : @escaping (UserInformation?)->Void){
         if let savedData = UserDefaults.standard.data(forKey: userdefaultKey) {
             do {
                 let userInformation = try JSONDecoder().decode(UserInformation.self, from: savedData)
                 print("Retrieved UserInformation: \(userInformation)")
-                return userInformation
+                UserInformationManager.shared.userInformation = userInformation
+                completion(userInformation)
+                    
+                        
+                    
             } catch {
                 print("Failed to decode UserInformation: \(error)")
-                return nil
+                completion(nil)
             }
         }
-        return nil
+        completion(nil)
     }
     
-    func updateUserInformation(updates: (inout UserInformation) -> Void) {
-        // 기존 데이터 불러오기
-        var currentInfo = loadUserInformation() ?? UserInformation()
+    func loadExistUserInformation(completion : @escaping (UserInformation?)->Void){
+        if let savedData = UserDefaults.standard.data(forKey: userdefaultKey) {
+            do {
+                let userInformation = try JSONDecoder().decode(UserInformation.self, from: savedData)
+                print("Retrieved UserInformation: \(userInformation)")
+                
+                    UserInformationManager.shared.userInformation = userInformation
+                    completion(userInformation)
+                
+            } catch {
+                print("Failed to decode UserInformation: \(error)")
+                completion(nil)
+            }
+        }
+        completion(nil)
+    }
+    
+    
+}
 
-        // 업데이트 적용
-        updates(&currentInfo)
-
-        // 수정된 데이터 다시 저장
-        saveUserInformation(currentInfo)
-        
-        /*
-         updateUserInformation { userInfo in
-             userInfo.userFullName = "Jane Doe"
-             userInfo.userAge = 32
-         }
-
-         */
+final class UserInformationManager {
+    static let shared = UserInformationManager()
+    
+    private init() {} // 외부에서 인스턴스 생성을 막기 위해 private
+    
+    var userInformation: UserInformation?
+    func updateUserInformation(_ info: UserInformation) {
+        self.userInformation = info
+    }
+    
+    func clearUserInformation() {
+        self.userInformation = UserInformation(
+            userIdentifier: nil,
+            userFullName: nil,
+            userEmail: nil,
+            userAge: nil,
+            maxHeartRate: nil
+        )
     }
 }
+
 

@@ -29,7 +29,7 @@ struct Counter: View {
             if vm.warnActivate {
                VStack {
                    Spacer()
-                   Text("운동형태를 먼저 선택하세요")
+                   Text(vm.warnMSG)
                        .padding()
                        .background(Color.black.opacity(0.8))
                        .foregroundColor(.white)
@@ -45,6 +45,9 @@ struct Counter: View {
                }
            }
         }
+        .sheet(isPresented: $vm.showSummaryActivate, content: {
+            completeSummary()
+        })
         .toolbar {
             ToolbarItem(placement: .navigationBarLeading) {
                 Button(action: {
@@ -78,7 +81,11 @@ struct Counter: View {
                     }
                 }
             }
-            
+            .background {
+                withAnimation {
+                    vm.warnActivate ? Color.white.opacity(0.5) : Color.clear
+                }
+            }
         }
         .padding(.horizontal)
     }
@@ -201,7 +208,7 @@ struct Counter: View {
             }
             .frame(maxWidth: .infinity)
             Button {
-                vm.otherWorkout()
+                vm.finishWorkout()
             } label: {
                 Text("운동완료")
                     .style(fontName: .kbold, fontSize: 25, fontColor: .black)
@@ -219,6 +226,56 @@ struct Counter: View {
         
     }
     
+    // MARK: - 완료summary
+    @ViewBuilder
+    private func completeSummary() -> some View{
+        VStack(spacing:20) {
+            Text("운동종료")
+                .style(fontName: .kbold, fontSize: 25, fontColor: .black)
+                
+            HStack {
+                Text("총 운동시간")
+                    .style(fontName: .kbold, fontSize: 20, fontColor: .black)
+                Spacer()
+                Text(vm.timerString)
+                    .style(fontName: .kbold, fontSize: 20, fontColor: .black)
+            }
+            HStack {
+                Text("총 운동")
+                    .style(fontName: .kbold, fontSize: 20, fontColor: .black)
+                Spacer()
+            }
+            ScrollView {
+                VStack(spacing: 15) {
+                    ForEach(vm.savedMuscleGroupExercises.indices, id: \.self) { i in
+                        scrollRow(item: vm.savedMuscleGroupExercises[i])
+                    }
+                }
+            }
+            Spacer()
+            Button {
+                dismiss()
+            } label: {
+                Btn(defaultString: "운종종료", fontsize: 20, fontcolor: .white, defaultColor: .black)
+            }
+
+        }
+        .padding()
+    }
+    
+    // MARK: - 완료스크롤디테일
+    @ViewBuilder
+    private func scrollRow(item:SavedMuscleGroupExercises) -> some View{
+        HStack(alignment:.bottom) {
+            Text(item.muscleGroupExercise.muscleGroup)
+                .style(fontName: .player, fontSize: 20, fontColor: .black)
+            Text("(\(item.exercises))")
+                .style(fontName: .player, fontSize: 10, fontColor: .black)
+            Spacer()
+            Text("\(item.counter) set")
+                .style(fontName: .player, fontSize: 20, fontColor: .black)
+        }
+    }
     
 }
 

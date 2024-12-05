@@ -11,6 +11,7 @@ struct My: View {
     @StateObject var vm = MyVM()
     @EnvironmentObject var workoutManager : WorkoutManager
     let timePeriod = TimePeriod.custom(startDate: Date(), endDate: Date())
+    @Binding var backToSplash : Bool
     var body: some View {
         ZStack {
             Color.white
@@ -33,7 +34,7 @@ struct My: View {
                     }
                     Spacer()
                     NavigationLink {
-                        Setting()
+                        Setting(backToSplash: $backToSplash)
                     } label: {
                         Image("SettingIcon")
                             .resizable()
@@ -77,11 +78,11 @@ struct My: View {
 //                            navigationRow(title: "측정 기준 설정")
 //                        }
                         
-                        NavigationLink {
-                            Grades()
-                        } label: {
-                            navigationRow(title: "Elite모드 구독",iconActivate: true)
-                        }
+//                        NavigationLink {
+//                            Grades()
+//                        } label: {
+//                            navigationRow(title: "Elite모드 구독",iconActivate: true)
+//                        }
                         
                         NavigationLink {
                             CSCenter()
@@ -94,14 +95,14 @@ struct My: View {
                 .onAppear(perform: {
                     vm.getTodayData()
                 })
-                NavigationLink {
-                    Grades()
-                } label: {
-                    Image("banner")
-                        .resizable()
-                        .aspectRatio(contentMode: .fit)
-                        .frame(maxWidth: .infinity)
-                }
+//                NavigationLink {
+//                    Grades()
+//                } label: {
+//                    Image("banner")
+//                        .resizable()
+//                        .aspectRatio(contentMode: .fit)
+//                        .frame(maxWidth: .infinity)
+//                }
             }
             .ignoresSafeArea(edges: .bottom)
             
@@ -168,7 +169,7 @@ struct My: View {
 }
 
 #Preview {
-    My()
+    My(backToSplash: .constant(false))
 }
 struct MysummaryInfo{
     var title : String

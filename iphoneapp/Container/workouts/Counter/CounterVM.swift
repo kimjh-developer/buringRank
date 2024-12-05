@@ -23,9 +23,9 @@ class CounterVM:ObservableObject{
     @Published var counter : Int = 0
     @Published var timerString: String = "00:00:00"
     @Published var showSummaryActivate : Bool = false
-    @Published var availToFinish : Bool = false
-    @Published var warnActivate : Bool = false
     
+    @Published var warnActivate : Bool = false
+    @Published var warnMSG : String = ""
     var savedMuscleGroupExercises : [SavedMuscleGroupExercises] = []
     private var timerSubscription: AnyCancellable?
     private var startTime: Date?
@@ -58,6 +58,7 @@ class CounterVM:ObservableObject{
         if exercises != nil{
             counter += 1
         }else{
+            warnMSG = "운동형태를 먼저 선택하세요"
             warnActivate.toggle()
         }
     }
@@ -66,24 +67,45 @@ class CounterVM:ObservableObject{
         if counter == 0{return}
         counter -= 1
     }
-    func otherWorkout(){
+    
+    private func saveworkout(){
         if let choosedmuscleGroupExercises = choosedmuscleGroupExercises,
            let exercises = exercises{
             if counter>0{
                 savedMuscleGroupExercises.append(SavedMuscleGroupExercises(muscleGroupExercise: choosedmuscleGroupExercises, exercises: exercises, counter: counter))
             }
         }
+    }
+    func otherWorkout(){
+        saveworkout()
         
         counter = 0
         choosedmuscleGroupExercises = nil
         exercises = nil
     }
     func finishWorkout(){
-        otherWorkout()
+        saveworkout()
+        if savedMuscleGroupExercises.isEmpty{
+            warnMSG = "저장한 운동이 없어요."
+            warnActivate = true
+            return
+        }
+        pauseTimer()
         stopTimer()
-        timerString = "00:00:00"
         showSummaryActivate = true
+        
+        print("savedMuscleGroupExercises:\(savedMuscleGroupExercises)")
     }
+    private func pauseTimer() {
+        // 타이머를 일시정지하고 경과 시간을 저장
+        timerSubscription?.cancel()
+        timerSubscription = nil
+        if let startTime = startTime {
+            let elapsedTime = Int(Date().timeIntervalSince(startTime))
+            self.timerString = self.formatTime(elapsedTime)
+        }
+    }
+
 }
 
 struct MuscleGroupExercise {

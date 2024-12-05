@@ -14,6 +14,7 @@ struct ContentView: View {
     @StateObject var userAthenicationVM = UserAthenicationVM()
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
     @State private var moveNext : Bool = false
+    @State private var hideLogin : Bool = false
     var body: some View {
         GeometryReader { geometry in
             let wsize = geometry.size.width
@@ -31,62 +32,65 @@ struct ContentView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: wsize*0.7)
                 
-                VStack {
-                    Spacer()
-                    
-                    SignInWithAppleButton(
-                        .signIn,
-                        onRequest: { request in
-                            // 애플 로그인 요청 구성
-                            request.requestedScopes = [.fullName, .email]
-                        },
-                        onCompletion: { result in
-                            // 결과 처리
-    //                        vm.handleSignInWithAppleResult(result)
-                            userAthenicationVM.handleSignInWithAppleResult(result)
+                if !hideLogin{
+                    VStack {
+                        Spacer()
+                        
+                        SignInWithAppleButton(
+                            .signIn,
+                            onRequest: { request in
+                                // 애플 로그인 요청 구성
+                                request.requestedScopes = [.fullName, .email]
+                            },
+                            onCompletion: { result in
+                                // 결과 처리
+        //                        vm.handleSignInWithAppleResult(result)
+                                userAthenicationVM.handleSignInWithAppleResult(result){result in
+                                    if result{
+                                        hideLogin = true
+                                        moveNext = true
+                                    }
+                                }
+                            }
+                        )
+                        .signInWithAppleButtonStyle(.white)
+                        .frame(height: 50)
+                        .padding()
+                        
+                        Button {
+                            moveNext.toggle()
+                        } label: {
+                            Text("로그인없이 버닝랭크이용하기")
+                                .style(fontName: .klight, fontSize: 12, fontColor: .white)
+                                .underline()
                         }
-                    )
-                    .signInWithAppleButtonStyle(.white)
-                    .frame(height: 50)
-                    .padding()
-                    
-                    Button {
-                        moveNext.toggle()
-                    } label: {
-                        Text("로그인없이 버닝랭크이용하기")
-                            .style(fontName: .klight, fontSize: 12, fontColor: .white)
-                            .underline()
-                    }
 
+                    }
+                    .padding(.bottom,40)
                 }
-                .padding(.bottom,40)
+                
                 
             }
             .onAppear {
                 userAthenicationVM.checkoutAthenicationPass(){result in
                     if result{
-                        locationManager.requestAuthorization { _ in}
+                        hideLogin = true
+                        locationManager.requestAuthorization ()
+                    }else{
+                        hideLogin = false
                     }
                 }
-//
             }
             .onChange(of: userAthenicationVM.AthenicationPass, { oldValue, newValue in
                 if newValue{
-                    locationManager.requestAuthorization { _ in}
+                    moveNext = true
                 }
             })
-            .onChange(of: locationManager.authorization, { oldValue, newValue in
-                if let value = newValue{
-                    if value == .authorizedAlways || value == .authorizedWhenInUse{
-                        workoutManager.requestAuthorization()
-                    }
-                }
-            })
-            .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
-                if newValue == true{
-                        moveNext.toggle()
-                    }
-            }
+//            .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
+//                if newValue == true && userAthenicationVM.AthenicationPass == true{
+//                        moveNext.toggle()
+//                    }
+//            }
             .alert(isPresented: $workoutManager.AuthoriseWarn){
                 Alert(
                     title: Text("권한 필요"),

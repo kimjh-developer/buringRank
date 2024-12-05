@@ -31,9 +31,11 @@ enum navis:CaseIterable{
    }
 }
 struct Container: View {
-     
+    @Environment(\.dismiss) var dismiss
     @EnvironmentObject var workoutManager: WorkoutManager
+    @StateObject var locationManager  = LocationManager()
     @State private var selectNavi : navis = .record
+    @State var backToSplash : Bool = false
     var body: some View {
         ZStack {
             Color.black
@@ -42,7 +44,7 @@ struct Container: View {
                     TabView(selection: $selectNavi) {
                         Burning().tag(navis.burning)
                         Record().tag(navis.record)
-                        My().tag(navis.my)
+                        My(backToSplash: $backToSplash).tag(navis.my)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
                     HStack {
@@ -61,7 +63,21 @@ struct Container: View {
         .navigationTitle("")
         .navigationBarBackButtonHidden()
         .ignoresSafeArea()
-        
+        .onChange(of: backToSplash) { oldValue, newValue in
+            if newValue{
+                dismiss()
+            }
+        }
+        .onAppear(perform: {
+            locationManager.requestAuthorization()
+        })
+        .onChange(of: locationManager.authorization) { oldValue, newValue in
+            if let result = newValue{
+                if result == .authorizedAlways || result == .authorizedWhenInUse{
+                        workoutManager.requestAuthorization()
+                    }
+            }
+        }
     }
     // MARK: - buttonItem
     @ViewBuilder

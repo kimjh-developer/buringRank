@@ -13,4 +13,5 @@ struct UserInformation:Codable {
     var userEmail : String?
     var userAge : Int?
     var maxHeartRate : Double?
+    var isTerminate:Bool = false
 }

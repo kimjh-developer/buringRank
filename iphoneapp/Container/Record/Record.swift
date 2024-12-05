@@ -70,6 +70,11 @@ struct Record: View {
         .onAppear {
             workoutManager.getWeekData()
         }
+        .onChange(of: workoutManager.authenicated) { oldValue, newValue in
+            if newValue{
+                workoutManager.getWeekData()
+            }
+        }
     }
     
     // MARK: - 요약디테일

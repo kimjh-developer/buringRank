@@ -25,7 +25,7 @@ class WorkoutManager:NSObject,ObservableObject{
     @Published var ThismaxHeartRate : Double?
     @Published var LastmaxHeartRate : Double?
     @Published var chartData: [DValue] = []
-    
+    @Published var authenicated : Bool = false
     
     var chooseDay : Date?
     
@@ -65,7 +65,9 @@ class WorkoutManager:NSObject,ObservableObject{
         
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if success {
+                
                 DispatchQueue.main.asyncAfter(deadline: .now()+1.0) {
+                    
                     self.checkAuthorizationStatus()
                 }
             } else {
@@ -87,11 +89,11 @@ class WorkoutManager:NSObject,ObservableObject{
                 let status = self.healthStore.authorizationStatus(for: type)
                 switch status {
                 case .sharingAuthorized:
-                    print("\(type.identifier):  ✍️ ✅ Authorized") // 읽기 권한만 표시
+                    print("")//print("\(type.identifier):  ✍️ ✅ Authorized") // 읽기 권한만 표시
                 case .sharingDenied:
-                    print("\(type.identifier): ✍️ 🛑 Denined") // 읽기 권한만 표시
+                    print("")//print("\(type.identifier): ✍️ 🛑 Denined") // 읽기 권한만 표시
                 case  .notDetermined:
-                    print("\(type.identifier): ✍️ 🔥 Determined")
+                    print("")//print("\(type.identifier): ✍️ 🔥 Determined")
                 @unknown default:
                     print("\(type.identifier): ✍️ ❌ Unknown Status")
                     allPermissionsGranted = false
@@ -102,11 +104,11 @@ class WorkoutManager:NSObject,ObservableObject{
                 let status = self.healthStore.authorizationStatus(for: type)
                 switch status {
                 case .sharingAuthorized:
-                    print("\(type.identifier): 📖 ✅ Authorized") // 읽기 권한만 표시
+                    print("")//print("\(type.identifier): 📖 ✅ Authorized") // 읽기 권한만 표시
                 case .sharingDenied:
-                    print("\(type.identifier): 📖 🛑 sharingDenied") // 읽기 권한만 표시
+                    print("")//print("\(type.identifier): 📖 🛑 sharingDenied") // 읽기 권한만 표시
                 case  .notDetermined:
-                    print("\(type.identifier):  📖 🔥 Determined")
+                    print("")//print("\(type.identifier):  📖 🔥 Determined")
                     typesToRequest.insert(type)
 //                            allPermissionsGranted = false
                 @unknown default:
@@ -132,6 +134,9 @@ class WorkoutManager:NSObject,ObservableObject{
                     self.AuthorizationFullyGranted = true
                     print("Authorization Fully Granted for Reading")
                     self.fetchUserData()
+                    
+                        self.authenicated = true
+                    
                 }
             } else {
                 self.AuthoriseWarn = true
