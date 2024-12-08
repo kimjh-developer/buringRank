@@ -32,7 +32,7 @@ enum navis:CaseIterable{
 }
 struct Container: View {
     @Environment(\.dismiss) var dismiss
-    @EnvironmentObject var workoutManager: WorkoutManager
+//    @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject var locationManager  = LocationManager()
     @State private var selectNavi : navis = .record
     @State var backToSplash : Bool = false
@@ -71,13 +71,13 @@ struct Container: View {
         .onAppear(perform: {
             locationManager.requestAuthorization()
         })
-        .onChange(of: locationManager.authorization) { oldValue, newValue in
-            if let result = newValue{
-                if result == .authorizedAlways || result == .authorizedWhenInUse{
-                        workoutManager.requestAuthorization()
-                    }
-            }
-        }
+//        .onChange(of: locationManager.authorization) { oldValue, newValue in
+//            if let result = newValue{
+//                if result == .authorizedAlways || result == .authorizedWhenInUse{
+//                        workoutManager.requestAuthorization()
+//                    }
+//            }
+//        }
     }
     // MARK: - buttonItem
     @ViewBuilder

@@ -9,7 +9,7 @@ import SwiftUI
 
 struct Counter: View {
     @Environment(\.dismiss) var dismiss
-    let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
+    
     @StateObject var vm = CounterVM()
     var body: some View {
         ZStack {

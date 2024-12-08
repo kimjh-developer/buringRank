@@ -12,6 +12,7 @@ struct Setting: View {
     @State var pushActivate : Bool = true
     @State var logoutActivate : Bool = false
     @Binding var backToSplash : Bool
+    @State var userState : UserState = .normal
     var body: some View {
         ZStack {
             Color.white
@@ -58,6 +59,7 @@ struct Setting: View {
                 VStack {
                     HStack {
                         Button {
+                            userState = .logout
                             logoutActivate.toggle()
                         } label: {
                             Text("로그아웃")
@@ -68,38 +70,55 @@ struct Setting: View {
                     .padding()
                     Divider()
                 }
+                VStack {
+                    HStack {
+                        Button {
+                            userState = .terminate
+                            logoutActivate.toggle()
+                        } label: {
+                            Text("탈퇴")
+                                .style(fontName: .klight, fontSize: 16, fontColor: .black)
+                            Spacer()
+                        }
+                    }
+                    .padding()
+                    
+                }
             }
             
             
         }
         .alert(isPresented: $logoutActivate) {
-                    Alert(
-                        title: Text("버닝랭크를 로그아웃하시겠습니까?"),
-                        primaryButton: .default(Text("로그아웃")) {
-                            UserAthenicationVM().loadUserInformation(completion: { userinformation in
-                                if var userInfo = userinformation { // 복사본 생성
-                                    userInfo.isTerminate = true
-                                    UserAthenicationVM().saveUserInformation(userInfo)
-                                    UserInformationManager.shared.userInformation = nil
-                                }
-                            })
-                            backToSplash = true
-                            dismiss()
-                        },
-                        secondaryButton: .cancel(Text("취소"))
-                    )
-                }
-                .foregroundColor(.black) // 텍스트 색상 강제 적용
-        .toolbar {
-                    ToolbarItem(placement: .navigationBarLeading) {
-                        Button(action: {
-                            dismiss()
-                        }) {
-                            Image(systemName: "chevron.left")
-                            .foregroundColor(.black) // 커스텀 뒤로가기 버튼 색상
+            Alert(
+                title: Text("버닝랭크를 \(userState.name)아웃하시겠습니까?"),
+                primaryButton: .default(Text(userState.name)) {
+                    UserAthenicationVM().loadUserInformation(completion: { userinformation in
+                        if var userInfo = userinformation { // 복사본 생성
+                            userInfo.userState = userState
+                            UserAthenicationVM().saveUserInformation(userInfo)
+                            UserInformationManager.shared.userInformation = nil
                         }
-                    }
+                    })
+                    backToSplash = true
+                    dismiss()
+                },
+                secondaryButton: .cancel(Text("취소"))
+            )
+        }
+        .foregroundColor(.black) // 텍스트 색상 강제 적용
+        
+
+        
+        .toolbar {
+            ToolbarItem(placement: .navigationBarLeading) {
+                Button(action: {
+                    dismiss()
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.black) // 커스텀 뒤로가기 버튼 색상
                 }
+            }
+        }
         .navigationTitle("")
         .navigationBarBackButtonHidden()
         

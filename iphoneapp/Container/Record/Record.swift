@@ -68,7 +68,7 @@ struct Record: View {
         }
         .padding()
         .onAppear {
-            workoutManager.getWeekData()
+            workoutManager.requestAuthorization()
         }
         .onChange(of: workoutManager.authenicated) { oldValue, newValue in
             if newValue{

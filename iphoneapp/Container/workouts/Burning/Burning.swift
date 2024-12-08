@@ -8,12 +8,13 @@
 import SwiftUI
 import HealthKit
 struct Burning: View {
-    @EnvironmentObject var workoutManager: WorkoutManager
-    let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
-    var workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking]//,.mindAndBody,]
-    @State var nextPageActivate : Bool = false
     
-    @StateObject var storeManager = StoreManager()
+    @StateObject var vm = BurningVM()
+    let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
+    let workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking]//,.mindAndBody,]
+    
+    
+//    @StateObject var storeManager = StoreManager()
     var body: some View {
         
         VStack {
@@ -30,17 +31,19 @@ struct Burning: View {
 //            purchases()
             
             Button {
-                if workoutManager.selectedWorkout != nil{
-                    nextPageActivate = true
+                print("clicked")
+                if vm.selectedWorkout != nil{
+                    vm.nextPageActivate = true
                 }
             } label: {
-                Btn(defaultString: "다음", fontsize: 20, fontcolor: .white, defaultColor: workoutManager.selectedWorkout != nil ? Color.themeRed : Color.btnInactivate)
+                Btn(defaultString: "다음", fontsize: 20, fontcolor: .white, defaultColor: vm.selectedWorkout != nil ? Color.themeRed : Color.btnInactivate)
                     .cornerRadius(50)
                     .padding()
             }
         }
-        .navigationDestination(isPresented: $nextPageActivate) { // LazyVGrid 외부로 이동
-            if workoutManager.selectedWorkout == .functionalStrengthTraining{
+        .navigationDestination(isPresented: $vm.nextPageActivate) { // LazyVGrid 외부로 이동
+//            Text("arrive")
+            if vm.selectedWorkout == .functionalStrengthTraining{
                 Counter()
             }else{
                 Tracker()
@@ -52,16 +55,16 @@ struct Burning: View {
     // MARK: - cell
     @ViewBuilder
     private func cell(item:HKWorkoutActivityType) -> some View{
-        let color = item == workoutManager.selectedWorkout ? Color.themeRed : .white
+        let color = item == vm.selectedWorkout ? Color.themeRed : .white
         Button {
-            workoutManager.selectedWorkout = item
+            vm.selectedWorkout = item
         } label: {
             ZStack {
                 item.detailImage
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .clipped()
-                Color.black.opacity(item == workoutManager.selectedWorkout ? 0.5 : 0)
+                Color.black.opacity(item == vm.selectedWorkout ? 0.5 : 0)
                 Text(item.name)
                     .style(fontName: .kbold, fontSize: 25, fontColor: color)
                 RoundedRectangle(cornerRadius: 13)
@@ -73,38 +76,38 @@ struct Burning: View {
     }
     
     // MARK: - 구독
-    @ViewBuilder
-    private func purchases() -> some View{
-        VStack(spacing: 20) {
-                   Text("구독 상태: \(storeManager.subscriptionStatus ? "활성화됨" : "비활성화됨")")
-                       .font(.headline)
-                       .padding()
-
-                   List(storeManager.products, id: \.id) { product in
-                       VStack(alignment: .leading) {
-                           Text(product.displayName)
-                               .font(.headline)
-                           Text(product.description)
-                               .font(.subheadline)
-                           Button(action: {
-                               Task {
-                                   await storeManager.purchase(product)
-                               }
-                           }) {
-                               Text("\(product.displayPrice)로 구독")
-                           }
-                       }
-                   }
-               }
-        .background(content: {
-            Color.white
-        })
-               .onAppear {
-                   Task {
-                       await storeManager.requestProducts()
-                   }
-               }
-    }
+//    @ViewBuilder
+//    private func purchases() -> some View{
+//        VStack(spacing: 20) {
+//                   Text("구독 상태: \(storeManager.subscriptionStatus ? "활성화됨" : "비활성화됨")")
+//                       .font(.headline)
+//                       .padding()
+//
+//                   List(storeManager.products, id: \.id) { product in
+//                       VStack(alignment: .leading) {
+//                           Text(product.displayName)
+//                               .font(.headline)
+//                           Text(product.description)
+//                               .font(.subheadline)
+//                           Button(action: {
+//                               Task {
+//                                   await storeManager.purchase(product)
+//                               }
+//                           }) {
+//                               Text("\(product.displayPrice)로 구독")
+//                           }
+//                       }
+//                   }
+//               }
+//        .background(content: {
+//            Color.white
+//        })
+//               .onAppear {
+//                   Task {
+//                       await storeManager.requestProducts()
+//                   }
+//               }
+//    }
 }
 
 #Preview {

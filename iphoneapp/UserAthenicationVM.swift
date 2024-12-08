@@ -10,59 +10,85 @@ import AuthenticationServices
 class UserAthenicationVM:ObservableObject{
     let userdefaultKey = "appleUserIdentifier"
     @Published var AthenicationPass : Bool = false
-    
-    func checkoutAthenicationPass(completion:@escaping (Bool)->Void){
+    @Published var moveNext : Bool = false
+    @Published var hideLogin : Bool = false
+    @Published var warnActivate : Bool = false
+    func checkoutAthenicationPass(){
         loadUserInformation { result in
-            if let isTerminate = result?.isTerminate{
-                if !isTerminate{
-                    self.AthenicationPass = true
-                    completion(true)
+            if let userState = result?.userState{
+                if userState == .terminate{
+                    self.warnActivate = true
+//                    self.AthenicationPass = false
+                    self.hideLogin = true
+//                    self.moveNext = false
+                }else{
+                    let value = userState == .normal
+                    self.AthenicationPass = value
+                    self.hideLogin = value
+                    self.moveNext = value
                 }
+                
             }
         }
-        completion(false)
+        
     }
     
-    func handleSignInWithAppleResult(_ result: Result<ASAuthorization, Error>,completion:@escaping (Bool)->Void) {
+    func handleSignInWithAppleResult(_ result: Result<ASAuthorization, Error>) {
+        print("handleSignInWithAppleResult")
         switch result {
         case .success(let authResults):
             // 데이터가 Z없으면 새로 넣음
             if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
                 // 사용자 정보 추출
-                
-                
                 loadExistUserInformation { existInfo in
-                    if var info = existInfo{
-                        if info.userIdentifier ?? "" == credential.user{
-                            info.isTerminate = false
-                            self.saveUserInformation(info)
-                            UserInformationManager.shared.userInformation = info
+                    if let userState = existInfo?.userState  {
+                        if userState == .terminate{
+                            
+                            self.warnActivate = true
+                            return
                         }else{
-                            self.registMember(credential: credential)
+                            if var info = existInfo{
+                                if info.userIdentifier ?? "" == credential.user{
+                                    info.userState = .normal
+                                    self.saveUserInformation(info)
+                                    UserInformationManager.shared.userInformation = info
+                                }else{
+                                    self.registMember(credential: credential)
+                                }
+                            }else{
+                                self.registMember(credential: credential)
+                            }
+                            
                         }
                     }else{
                         self.registMember(credential: credential)
                     }
                 }
             }
-            self.AthenicationPass = true
-            completion(true)
+            
+            
         case .failure(let error):
             // 에러 처리
             print("Authorization failed: \(error.localizedDescription)")
-            completion(false)
+            
         }
-        completion(false)
     }
+    
+    
+    
     
     private func registMember(credential : ASAuthorizationAppleIDCredential){
         var userInformation = UserInformation()
         userInformation.userIdentifier = credential.user
         userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
         userInformation.userEmail = credential.email
-        
+        userInformation.userState = .normal
         saveUserInformation(userInformation)
         UserInformationManager.shared.userInformation = userInformation
+        
+        AthenicationPass = true
+        hideLogin = true
+        moveNext = true
         print("Set UserDefaults successfully")
         
     }
@@ -117,8 +143,9 @@ class UserAthenicationVM:ObservableObject{
                 print("Failed to decode UserInformation: \(error)")
                 completion(nil)
             }
+        }else{
+            completion(nil)
         }
-        completion(nil)
     }
     
     

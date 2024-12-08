@@ -320,6 +320,27 @@ class WorkoutManager:NSObject,ObservableObject{
         healthStore.execute(query)
     }
     
+    
+//    워크아웃 시간 구하기
+    func fetchWeeklyWorkoutData(start: Date, end: Date, completion: @escaping ([HKWorkout]?) -> Void) {
+        let workoutType = HKObjectType.workoutType()
+        
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
+        
+        let query = HKSampleQuery(sampleType: workoutType, predicate: predicate, limit: HKObjectQueryNoLimit, sortDescriptors: nil) { _, samples, error in
+            if let error = error {
+                print("Error fetching workout data: \(error.localizedDescription)")
+                completion(nil)
+                return
+            }
+            
+            completion(samples as? [HKWorkout])
+        }
+        
+        healthStore.execute(query)
+    }
+    
+    
     func getDailyComparisonData(for date: Date) {
         let calendar = Calendar.current
         guard let lastWeekSameDay = calendar.date(byAdding: .weekOfYear, value: -1, to: date) else { return }
@@ -896,9 +917,99 @@ extension WorkoutManager {
                 self.processSamples(samples, for: summaryType, unit: HKUnit(from: "count/min"), timePeriod: timePeriod, completion: completion)
             }
         case .workoutDuration:
-            return
+            fetchWeeklyWorkoutData(start: dateRange.start, end: dateRange.end) { workouts in
+                self.processWorkoutDuration(workouts, timePeriod: timePeriod, completion: completion)
+            }
         }
     }
+    
+    func processWorkoutDuration(_ workouts: [HKWorkout]?, timePeriod: TimePeriod, completion: @escaping () -> Void) {
+        guard let workouts = workouts, !workouts.isEmpty else {
+            DispatchQueue.main.async {
+                self.summaryArray = [
+                    SummaryRow(
+                        summaryType: .workoutDuration,
+                        stack: SummaryRowElement(Str: "운동 데이터 없음", Updown: nil, Value: nil),
+                        best: SummaryRowElement(Str: "최고 운동 시간 없음", Updown: nil, Value: nil),
+                        duration: nil
+                    )
+                ]
+                completion()
+            }
+            return
+        }
+        
+        // 총 운동 시간 (초 단위)
+        let totalDuration = workouts.reduce(0.0) { $0 + $1.duration }
+        
+        // 일 평균 운동 시간
+        let days = Double(Calendar.current.dateComponents([.day], from: timePeriod.getDateRange().start, to: timePeriod.getDateRange().end).day! + 1)
+        let dailyAverage = totalDuration / days / 60.0 // 분 단위로 변환
+        
+        // 최고 운동 시간 (분 단위)
+        let maxDuration = workouts.map { $0.duration / 60.0 }.max() ?? 0.0
+        
+        if case .custom = timePeriod {
+            DispatchQueue.main.async {
+                self.summaryArray = [
+                    SummaryRow(
+                        summaryType: .workoutDuration,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균 운동 시간", Updown: nil, Value: dailyAverage),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
+                    ),
+                    SummaryRow(
+                        summaryType: .workoutDuration,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고 운동 시간", Updown: nil, Value: maxDuration),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
+                    ),
+                    SummaryRow(
+                        summaryType: .workoutDuration,
+                        stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 총 운동 시간", Updown: nil, Value: totalDuration / 60.0),
+                        best: SummaryRowElement(Str: "", Updown: nil, Value: nil),
+                        duration: nil
+                    )
+                ]
+                completion()
+            }
+            return
+        } else {
+            // 지난 기간 데이터 가져오기
+            let lastPeriodRange = timePeriod.getLastPeriodDateRange()
+            fetchWeeklyWorkoutData(start: lastPeriodRange.start, end: lastPeriodRange.end) { lastPeriodWorkouts in
+                let lastTotalDuration = lastPeriodWorkouts?.reduce(0.0) { $0 + $1.duration } ?? 0.0
+                let lastDailyAverage = lastTotalDuration / days / 60.0
+                let lastMaxDuration = lastPeriodWorkouts?.map { $0.duration / 60.0 }.max() ?? 0.0
+                
+                DispatchQueue.main.async {
+                    self.summaryArray = [
+                        SummaryRow(
+                            summaryType: .workoutDuration,
+                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 일평균 운동 시간", Updown: nil, Value: dailyAverage),
+                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 일평균 운동 시간", Updown: nil, Value: lastDailyAverage),
+                            duration: nil
+                        ),
+                        SummaryRow(
+                            summaryType: .workoutDuration,
+                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 최고 운동 시간", Updown: nil, Value: maxDuration),
+                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 최고 운동 시간", Updown: nil, Value: lastMaxDuration),
+                            duration: nil
+                        ),
+                        SummaryRow(
+                            summaryType: .workoutDuration,
+                            stack: SummaryRowElement(Str: "이번 \(timePeriod.measure) 총 운동 시간", Updown: nil, Value: totalDuration / 60.0),
+                            best: SummaryRowElement(Str: "지난 \(timePeriod.measure) 총 운동 시간", Updown: nil, Value: lastTotalDuration / 60.0),
+                            duration: nil
+                        )
+                    ]
+                    completion()
+                }
+            }
+        }
+    }
+
+
     
     /// 데이터를 처리하고 summaryArray에 추가
     private func processSamples(_ samples: [HKQuantitySample]?, for type: SummaryType, unit: HKUnit, timePeriod: TimePeriod, completion: @escaping () -> Void) {

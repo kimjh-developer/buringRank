@@ -13,8 +13,7 @@ struct ContentView: View {
     @StateObject var locationManager  = LocationManager()
     @StateObject var userAthenicationVM = UserAthenicationVM()
     let splashArray = ["sp0", "sp1", "sp2", "sp3"]
-    @State private var moveNext : Bool = false
-    @State private var hideLogin : Bool = false
+    
     var body: some View {
         GeometryReader { geometry in
             let wsize = geometry.size.width
@@ -24,6 +23,7 @@ struct ContentView: View {
                     .scaledToFill() // 이미지를 화면에 꽉 채우도록 설정
                     .frame(width: wsize, height: geometry.size.height+10)
                     .offset(y: -5)
+                    
                 
                 Color.black.opacity(0.4)
                 
@@ -32,7 +32,7 @@ struct ContentView: View {
                     .aspectRatio(contentMode: .fit)
                     .frame(width: wsize*0.7)
                 
-                if !hideLogin{
+                if !userAthenicationVM.hideLogin{
                     VStack {
                         Spacer()
                         
@@ -45,12 +45,7 @@ struct ContentView: View {
                             onCompletion: { result in
                                 // 결과 처리
         //                        vm.handleSignInWithAppleResult(result)
-                                userAthenicationVM.handleSignInWithAppleResult(result){result in
-                                    if result{
-                                        hideLogin = true
-                                        moveNext = true
-                                    }
-                                }
+                                userAthenicationVM.handleSignInWithAppleResult(result)
                             }
                         )
                         .signInWithAppleButtonStyle(.white)
@@ -58,7 +53,7 @@ struct ContentView: View {
                         .padding()
                         
                         Button {
-                            moveNext.toggle()
+                            userAthenicationVM.moveNext = true
                         } label: {
                             Text("로그인없이 버닝랭크이용하기")
                                 .style(fontName: .klight, fontSize: 12, fontColor: .white)
@@ -72,38 +67,21 @@ struct ContentView: View {
                 
             }
             .onAppear {
-                userAthenicationVM.checkoutAthenicationPass(){result in
-                    if result{
-                        hideLogin = true
-                        locationManager.requestAuthorization ()
-                    }else{
-                        hideLogin = false
-                    }
+                DispatchQueue.main.asyncAfter(deadline: .now()+1.0){
+                    
+                        userAthenicationVM.checkoutAthenicationPass ()
+                    
                 }
             }
-            .onChange(of: userAthenicationVM.AthenicationPass, { oldValue, newValue in
-                if newValue{
-                    moveNext = true
-                }
-            })
-//            .onChange(of: workoutManager.AuthorizationFullyGranted) { oldValue, newValue in
-//                if newValue == true && userAthenicationVM.AthenicationPass == true{
-//                        moveNext.toggle()
-//                    }
-//            }
-            .alert(isPresented: $workoutManager.AuthoriseWarn){
-                Alert(
-                    title: Text("권한 필요"),
-                    message: Text("운동 경로 데이터를 가져오려면 권한이 필요합니다. 설정에서 권한을 활성화하세요."),
-                    primaryButton: .default(Text("설정 열기"), action: openAppSettings),
-                    secondaryButton:  .default(Text("바로 사용"), action: {
-                        moveNext.toggle()
-                    })
-                )
+            .alert(isPresented: $userAthenicationVM.warnActivate) {
+                Alert(title: Text("탈퇴한계정입니다"), message:Text("설정->애플 apple로 로그인 iphoneapp을 삭제해주세요 에서 버닝랭크를 초기화해주세요") , dismissButton: .default(Text("확인"), action: {
+                    userAthenicationVM.warnActivate.toggle()
+                }))
             }
+            .foregroundColor(.black) // 텍스트 색상 강제 적용
         }
         .ignoresSafeArea() // 전체 화면 사용
-        .navigationDestination(isPresented: $moveNext) {
+        .navigationDestination(isPresented: $userAthenicationVM.moveNext) {
             Container()
         }
     }

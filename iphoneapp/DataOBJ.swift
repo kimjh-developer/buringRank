@@ -13,5 +13,19 @@ struct UserInformation:Codable {
     var userEmail : String?
     var userAge : Int?
     var maxHeartRate : Double?
-    var isTerminate:Bool = false
+    var userState:UserState?
+}
+enum UserState:Codable{
+    case normal,logout,terminate
+    
+    var name : String{
+        switch self {
+        case .normal:
+            return "정상"
+        case .logout:
+            return "로그아웃"
+        case .terminate:
+            return "탈퇴"
+        }
+    }
 }
