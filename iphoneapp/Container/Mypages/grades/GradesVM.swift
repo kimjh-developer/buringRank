@@ -6,15 +6,22 @@
 //
 
 import SwiftUI
-enum Grade{case Basic,Elite,Pause}
+//enum Grade{case Basic,Elite,Pause}
 
-class GradesVM:ObservableObject{
-    @Published var grade : Grade = .Basic
-    @Published var subscribeType : SubscribeType = .month
-}
+//class GradesVM:ObservableObject{
+//    @Published var grade : Grade?
+//    @Published var subscribeType : SubscribeType?
+//}
 
 enum SubscribeType:CaseIterable{
     case month,year
+    var id : String{
+        switch self {
+        case .month:return "monthlySubscribe"
+        case .year:return "yearlySubscribe"
+        
+        }
+    }
     
     var name : String{
         switch self {

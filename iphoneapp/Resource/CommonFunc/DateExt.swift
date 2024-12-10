@@ -38,4 +38,14 @@ extension Date {
             dateFormatter.dateFormat = format
             return dateFormatter.string(from: self)
         }
+    
+    func toKST() -> Date? {
+            // 한국 시간대를 설정
+            var calendar = Calendar.current
+            calendar.timeZone = TimeZone(identifier: "Asia/Seoul")!
+            
+            // DateComponents로 변환 후 다시 Date로 변환
+            let components = calendar.dateComponents(in: TimeZone(identifier: "Asia/Seoul")!, from: self)
+            return calendar.date(from: components)
+        }
 }

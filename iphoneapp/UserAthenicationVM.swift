@@ -50,8 +50,9 @@ class UserAthenicationVM:ObservableObject{
                             if var info = existInfo{
                                 if info.userIdentifier ?? "" == credential.user{
                                     info.userState = .normal
-                                    self.saveUserInformation(info)
                                     UserInformationManager.shared.userInformation = info
+                                    self.saveUserInformation(info)
+                                    self.executeAndMoveNext()
                                 }else{
                                     self.registMember(credential: credential)
                                 }
@@ -86,11 +87,15 @@ class UserAthenicationVM:ObservableObject{
         saveUserInformation(userInformation)
         UserInformationManager.shared.userInformation = userInformation
         
+        executeAndMoveNext()
+        print("Set UserDefaults successfully")
+        
+    }
+    
+    private func executeAndMoveNext(){
         AthenicationPass = true
         hideLogin = true
         moveNext = true
-        print("Set UserDefaults successfully")
-        
     }
     
     func saveUserInformation(_ userInformation: UserInformation) {

@@ -28,10 +28,11 @@ struct Burning: View {
             .padding()
             Spacer()
             
-//            purchases()
+            //구독할리스트 불러오기
+            
             
             Button {
-                print("clicked")
+                
                 if vm.selectedWorkout != nil{
                     vm.nextPageActivate = true
                 }
@@ -75,39 +76,9 @@ struct Burning: View {
         }
     }
     
-    // MARK: - 구독
-//    @ViewBuilder
-//    private func purchases() -> some View{
-//        VStack(spacing: 20) {
-//                   Text("구독 상태: \(storeManager.subscriptionStatus ? "활성화됨" : "비활성화됨")")
-//                       .font(.headline)
-//                       .padding()
-//
-//                   List(storeManager.products, id: \.id) { product in
-//                       VStack(alignment: .leading) {
-//                           Text(product.displayName)
-//                               .font(.headline)
-//                           Text(product.description)
-//                               .font(.subheadline)
-//                           Button(action: {
-//                               Task {
-//                                   await storeManager.purchase(product)
-//                               }
-//                           }) {
-//                               Text("\(product.displayPrice)로 구독")
-//                           }
-//                       }
-//                   }
-//               }
-//        .background(content: {
-//            Color.white
-//        })
-//               .onAppear {
-//                   Task {
-//                       await storeManager.requestProducts()
-//                   }
-//               }
-//    }
+    
+    
+ 
 }
 
 #Preview {

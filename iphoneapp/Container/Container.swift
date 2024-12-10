@@ -34,7 +34,7 @@ struct Container: View {
     @Environment(\.dismiss) var dismiss
 //    @EnvironmentObject var workoutManager: WorkoutManager
     @StateObject var locationManager  = LocationManager()
-    @State private var selectNavi : navis = .record
+    @State private var selectNavi : navis = .burning
     @State var backToSplash : Bool = false
     var body: some View {
         ZStack {
