@@ -13,7 +13,7 @@ struct Data {
     let value: Int
 }
 struct RecordDetail: View {
-    
+    @StateObject var storeManager = StoreManager()
     @StateObject var vm = RecordDetailVM()
     @EnvironmentObject var workoutManager : WorkoutManager
     private let months = Array(1...12) // 1월부터 12월까지
@@ -49,6 +49,14 @@ struct RecordDetail: View {
         .onAppear {
             isLoading = true
             loadData(for: .weekly)
+            Task{
+                await storeManager.checkSubscriptionStatus()
+            }
+        }
+        .onChange(of: storeManager.isSubscribed) { oldValue, newValue in
+            
+            vm.isFreeMember = !newValue
+            
         }
         
     }

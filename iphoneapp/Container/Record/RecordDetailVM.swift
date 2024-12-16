@@ -12,7 +12,7 @@ class RecordDetailVM:ObservableObject{
     @Published var timePeriod : TimePeriod = .weekly
     
     @Published var selectSummaryType : SummaryType = .heartRate
-    @Published var isFreeMember : Bool = false
+    @Published var isFreeMember : Bool = true
     @Published var summaryArray : Array<SummaryRow>?
     
     @Published var chooseDate : [Date] = [Date()]
