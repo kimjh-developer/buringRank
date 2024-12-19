@@ -13,49 +13,46 @@ struct Burning: View {
     let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
     let workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking]//,.mindAndBody,]
     
-    
-//    @StateObject var storeManager = StoreManager()
     var body: some View {
-        
-        VStack {
-            Text("운동 타입을 선택해주세요")
-                .style(fontName: .kbold, fontSize: 25, fontColor: .white)
-            LazyVGrid(columns: grids) {
-                ForEach(workoutTypes, id: \.self) { row in
-                    cell(item: row)
+        NavigationStack {
+            VStack {
+                Text("운동 타입을 선택해주세요")
+                    .style(fontName: .kbold, fontSize: 25, fontColor: .white)
+                GeometryReader { proxy in
+                    VStack {
+                        ForEach(workoutTypes, id: \.self) { row in
+                            cell(item: row, proxy: proxy)
+                        }
+                    }
                 }
-            }
-            .padding()
-            Spacer()
-            
-            //구독할리스트 불러오기
-            
-            
-            Button {
+                .padding()
                 
-                if vm.selectedWorkout != nil{
-                    vm.nextPageActivate = true
+                Spacer()
+                
+                Button {
+                    if vm.selectedWorkout != nil {
+                        vm.nextPageActivate = true
+                    }
+                } label: {
+                    Btn(defaultString: "다음", fontsize: 20, fontcolor: .white, defaultColor: vm.selectedWorkout != nil ? Color.themeRed : Color.btnInactivate)
+                        .cornerRadius(50)
+                        .padding()
                 }
-            } label: {
-                Btn(defaultString: "다음", fontsize: 20, fontcolor: .white, defaultColor: vm.selectedWorkout != nil ? Color.themeRed : Color.btnInactivate)
-                    .cornerRadius(50)
-                    .padding()
+            }
+            // navigationDestination을 VStack 외부로 이동
+            .navigationDestination(isPresented: $vm.nextPageActivate) {
+                if vm.selectedWorkout == .functionalStrengthTraining {
+                    Counter()
+                } else {
+                    GroupMembers()
+                }
             }
         }
-        .navigationDestination(isPresented: $vm.nextPageActivate) { // LazyVGrid 외부로 이동
-//            Text("arrive")
-            if vm.selectedWorkout == .functionalStrengthTraining{
-                Counter()
-            }else{
-                Tracker()
-            }
-//                    SelectWorkoutLevel(workoutDone: $nextPageActivate)
-        }
-        
     }
+
     // MARK: - cell
     @ViewBuilder
-    private func cell(item:HKWorkoutActivityType) -> some View{
+    private func cell(item:HKWorkoutActivityType,proxy : GeometryProxy) -> some View{
         let color = item == vm.selectedWorkout ? Color.themeRed : .white
         Button {
             vm.selectedWorkout = item
@@ -65,13 +62,14 @@ struct Burning: View {
                     .resizable()
                     .aspectRatio(contentMode: .fill)
                     .clipped()
+                    .frame(height: proxy.size.height/3-10)
                 Color.black.opacity(item == vm.selectedWorkout ? 0.5 : 0)
                 Text(item.name)
                     .style(fontName: .kbold, fontSize: 25, fontColor: color)
                 RoundedRectangle(cornerRadius: 13)
                     .stroke(color, lineWidth: 5.0)
             }
-            
+            .frame(height: proxy.size.height/3-10)
             .cornerRadius(10)
         }
     }

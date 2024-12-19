@@ -8,7 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		045824B02CC1EA45005D3889 /* watchApp Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 045824A32CC1EA42005D3889 /* watchApp Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
-		047C2DC82CD30B15003659F7 /* FSCalendar in Frameworks */ = {isa = PBXBuildFile; productRef = 047C2DC72CD30B15003659F7 /* FSCalendar */; };
+		04E7DF882D141ACD00702E37 /* FSCalendar in Frameworks */ = {isa = PBXBuildFile; productRef = 04E7DF872D141ACD00702E37 /* FSCalendar */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,7 +92,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				047C2DC82CD30B15003659F7 /* FSCalendar in Frameworks */,
+				04E7DF882D141ACD00702E37 /* FSCalendar in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -156,7 +156,7 @@
 			);
 			name = iphoneapp;
 			packageProductDependencies = (
-				047C2DC72CD30B15003659F7 /* FSCalendar */,
+				04E7DF872D141ACD00702E37 /* FSCalendar */,
 			);
 			productName = iphoneapp;
 			productReference = 0458248E2CC1E7F9005D3889 /* iphoneapp.app */;
@@ -212,7 +212,7 @@
 			mainGroup = 045824852CC1E7F9005D3889;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */,
+				04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0458248F2CC1E7F9005D3889 /* Products */;
@@ -405,6 +405,7 @@
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "사용자의 운동기록을 저장하기위해 필요합니다";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "주변 버닝랭크멤버와 내 운동정보를 주고 받습니다";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -449,6 +450,7 @@
 				INFOPLIST_KEY_NSHealthClinicalHealthRecordsShareUsageDescription = "사용자의 운동기록을 저장하기위해 필요합니다";
 				INFOPLIST_KEY_NSHealthShareUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
 				INFOPLIST_KEY_NSHealthUpdateUsageDescription = "사용자의 운동기록을 버닝랭크가 공유하기위해 필요합니다";
+				INFOPLIST_KEY_NSLocalNetworkUsageDescription = "주변 버닝랭크멤버와 내 운동정보를 주고 받습니다";
 				INFOPLIST_KEY_NSLocationAlwaysAndWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "지도에서 사용자의 위치와 운동기록을 표시합니다";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
@@ -580,7 +582,7 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */ = {
+		04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/WenchaoD/FSCalendar.git";
 			requirement = {
@@ -591,9 +593,9 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		047C2DC72CD30B15003659F7 /* FSCalendar */ = {
+		04E7DF872D141ACD00702E37 /* FSCalendar */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = 047C2DC62CD30B15003659F7 /* XCRemoteSwiftPackageReference "FSCalendar" */;
+			package = 04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */;
 			productName = FSCalendar;
 		};
 /* End XCSwiftPackageProductDependency section */
