@@ -1,6 +1,15 @@
 {
-  "originHash" : "2210fcafa6e02a3f16f3c2d3cc45e0b8bfbabcff7a5be6325d5d2194bc31f854",
+  "originHash" : "bce3ab86edef0dfd8355cd63c14618e3f321fde1365932cc6be02ca277917782",
   "pins" : [
+    {
+      "identity" : "alamofire",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/Alamofire/Alamofire.git",
+      "state" : {
+        "revision" : "513364f870f6bfc468f9d2ff0a95caccc10044c5",
+        "version" : "5.10.2"
+      }
+    },
     {
       "identity" : "fscalendar",
       "kind" : "remoteSourceControl",

@@ -11,7 +11,7 @@ import SwiftUI
 struct iphoneappApp: App {
     
     @StateObject private var workoutManager = WorkoutManager()
-    
+//    @StateObject private var bluetoothManager = BluetoothManager()
     var body: some Scene {
         
         WindowGroup {
@@ -19,6 +19,7 @@ struct iphoneappApp: App {
                 ContentView()
             }
             .environmentObject(workoutManager)
+//            .environmentObject(bluetoothManager)
             .tint(.white)
         }
     }

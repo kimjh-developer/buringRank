@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		045716EA2D1563AC004CFDBA /* Alamofire in Frameworks */ = {isa = PBXBuildFile; productRef = 045716E92D1563AC004CFDBA /* Alamofire */; };
 		045824B02CC1EA45005D3889 /* watchApp Watch App.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 045824A32CC1EA42005D3889 /* watchApp Watch App.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		04E7DF882D141ACD00702E37 /* FSCalendar in Frameworks */ = {isa = PBXBuildFile; productRef = 04E7DF872D141ACD00702E37 /* FSCalendar */; };
 /* End PBXBuildFile section */
@@ -46,6 +47,7 @@
 		045824BF2CC333F9005D3889 /* Exceptions for "iphoneapp" folder in "watchApp Watch App" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
+				Resource/CommonFunc/ArrayExt.swift,
 				Resource/CommonFunc/DateExt.swift,
 				Resource/CommonFunc/DoubleExt.swift,
 				Resource/CommonFunc/GridLine.swift,
@@ -93,6 +95,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				04E7DF882D141ACD00702E37 /* FSCalendar in Frameworks */,
+				045716EA2D1563AC004CFDBA /* Alamofire in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -157,6 +160,7 @@
 			name = iphoneapp;
 			packageProductDependencies = (
 				04E7DF872D141ACD00702E37 /* FSCalendar */,
+				045716E92D1563AC004CFDBA /* Alamofire */,
 			);
 			productName = iphoneapp;
 			productReference = 0458248E2CC1E7F9005D3889 /* iphoneapp.app */;
@@ -213,6 +217,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */,
+				045716E82D1563AC004CFDBA /* XCRemoteSwiftPackageReference "Alamofire" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 0458248F2CC1E7F9005D3889 /* Products */;
@@ -411,8 +416,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -456,8 +461,8 @@
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
-				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPhone = "UIInterfaceOrientationPortrait UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight";
+				INFOPLIST_KEY_UISupportedInterfaceOrientations = UIInterfaceOrientationPortrait;
+				INFOPLIST_KEY_UISupportedInterfaceOrientations_iPad = "UIInterfaceOrientationLandscapeLeft UIInterfaceOrientationLandscapeRight UIInterfaceOrientationPortrait UIInterfaceOrientationPortraitUpsideDown";
 				INFOPLIST_KEY_UIUserInterfaceStyle = Light;
 				IPHONEOS_DEPLOYMENT_TARGET = 17.6;
 				LD_RUNPATH_SEARCH_PATHS = (
@@ -582,6 +587,14 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
+		045716E82D1563AC004CFDBA /* XCRemoteSwiftPackageReference "Alamofire" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/Alamofire/Alamofire.git";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 5.10.2;
+			};
+		};
 		04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/WenchaoD/FSCalendar.git";
@@ -593,6 +606,11 @@
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
+		045716E92D1563AC004CFDBA /* Alamofire */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 045716E82D1563AC004CFDBA /* XCRemoteSwiftPackageReference "Alamofire" */;
+			productName = Alamofire;
+		};
 		04E7DF872D141ACD00702E37 /* FSCalendar */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 04E7DF862D141ACD00702E37 /* XCRemoteSwiftPackageReference "FSCalendar" */;

@@ -22,10 +22,10 @@ class UserAthenicationVM:ObservableObject{
                     self.hideLogin = true
 //                    self.moveNext = false
                 }else{
-                    let value = userState == .normal
-                    self.AthenicationPass = value
-                    self.hideLogin = value
-                    self.moveNext = value
+                    if let info = result{
+                        let value = userState == .normal
+                        self.saveUserInformation(info)
+                    }
                 }
                 
             }
@@ -41,9 +41,8 @@ class UserAthenicationVM:ObservableObject{
             if let credential = authResults.credential as? ASAuthorizationAppleIDCredential {
                 // 사용자 정보 추출
                 loadExistUserInformation { existInfo in
-                    if let userState = existInfo?.userState  {
+                    if let userState = existInfo?.userState{
                         if userState == .terminate{
-                            
                             self.warnActivate = true
                             return
                         }else{
@@ -81,8 +80,13 @@ class UserAthenicationVM:ObservableObject{
     private func registMember(credential : ASAuthorizationAppleIDCredential){
         var userInformation = UserInformation()
         userInformation.userIdentifier = credential.user
-        userInformation.userFullName = "\(credential.fullName?.givenName ?? "") \(credential.fullName?.familyName ?? "")"
-        userInformation.userEmail = credential.email
+        userInformation.userNickname = RandomIDS().generateRandomID()
+        if let givenName = credential.fullName?.givenName,let familyName = credential.fullName?.familyName{
+            userInformation.userFullName = givenName+familyName
+        }
+        if let email = credential.email{
+            userInformation.userEmail = email
+        }
         userInformation.userState = .normal
         saveUserInformation(userInformation)
         UserInformationManager.shared.userInformation = userInformation
@@ -104,7 +108,12 @@ class UserAthenicationVM:ObservableObject{
             // 구조체를 JSON 데이터로 변환
             let data = try encoder.encode(userInformation)
             // UserDefaults에 JSON 데이터 저장
-            UserDefaults.standard.set(data, forKey: userdefaultKey)
+            UserDefaults.standard.set(data, forKey: self.userdefaultKey)
+            ConnectionManager.Call(tail: "user_add_modify",data: data) { res in
+                print("res IS \(String(describing: res))")
+                self.executeAndMoveNext()
+            }
+            
         } catch {
             print("Failed to encode UserInformation: \(error.localizedDescription)")
         }
@@ -124,9 +133,6 @@ class UserAthenicationVM:ObservableObject{
                 print("Retrieved UserInformation: \(userInformation)")
                 UserInformationManager.shared.userInformation = userInformation
                 completion(userInformation)
-                    
-                        
-                    
             } catch {
                 print("Failed to decode UserInformation: \(error)")
                 completion(nil)

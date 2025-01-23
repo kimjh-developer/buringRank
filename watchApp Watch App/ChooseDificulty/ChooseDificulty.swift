@@ -125,7 +125,7 @@ struct ChooseDificulty: View {
             Text(title)
                 .style(fontName: .kmedium,fontSize: 15,fontColor: isActivate ? Color.btnActivate : .white)
             if let baselineHeartRate = workoutManager.baselineHeartRate,
-               let selectedWorkout = workoutManager.selectedWorkout{
+               let _ = workoutManager.selectedWorkout{
                 HStack(content: {
                     
                     Text("\((baselineHeartRate*low/100).toString(withDecimalPlaces:0))~\((baselineHeartRate*high/100).toString(withDecimalPlaces: 0))bpm"

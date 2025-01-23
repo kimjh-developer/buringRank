@@ -20,7 +20,7 @@ struct My: View {
             VStack {
                 HStack {
                     VStack(spacing: 5) {
-                        Text("랭커님의 최고 기록")
+                        Text("\(vm.nickName ?? "")랭커님의 최고 기록")
                             .style(fontName: .kbold, fontSize: 25, fontColor: .black)
                             
                         HStack(spacing: 0) {

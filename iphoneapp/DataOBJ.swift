@@ -13,19 +13,12 @@ struct UserInformation:Codable {
     var userEmail : String?
     var userAge : Int?
     var maxHeartRate : Double?
-    var userState:UserState?
+    var userState:UserState = .normal
+    var userNickname : String?
 }
-enum UserState:Codable{
-    case normal,logout,terminate
-    
-    var name : String{
-        switch self {
-        case .normal:
-            return "정상"
-        case .logout:
-            return "로그아웃"
-        case .terminate:
-            return "탈퇴"
-        }
-    }
+enum UserState: String, Codable {
+    case normal = "normal"
+    case logout = "logout"
+    case terminate = "terminate"
 }
+

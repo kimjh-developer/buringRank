@@ -90,8 +90,8 @@ struct Setting: View {
         }
         .alert(isPresented: $logoutActivate) {
             Alert(
-                title: Text("버닝랭크를 \(userState.name)아웃하시겠습니까?"),
-                primaryButton: .default(Text(userState.name)) {
+                title: Text("버닝랭크를 \(userState)아웃하시겠습니까?"),
+                primaryButton: .default(Text(userState.rawValue)) {
                     UserAthenicationVM().loadUserInformation(completion: { userinformation in
                         if var userInfo = userinformation { // 복사본 생성
                             userInfo.userState = userState

@@ -6,3 +6,6 @@
 //
 
 import Foundation
+class GroupMembersVM:ObservableObject{
+    @Published var isShowGroupMembers:Bool = false
+}

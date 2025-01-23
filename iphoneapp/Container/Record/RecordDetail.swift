@@ -7,11 +7,7 @@
 
 import SwiftUI
 import Charts
-struct Data {
-    let name: String = "jake"
-    let date: Date
-    let value: Int
-}
+
 struct RecordDetail: View {
     @StateObject var storeManager = StoreManager()
     @StateObject var vm = RecordDetailVM()
