@@ -106,6 +106,7 @@ struct My: View {
                 }
             }
             .ignoresSafeArea(edges: .bottom)
+            .padding(.top)
             
         }
         

@@ -42,11 +42,12 @@ struct Container: View {
             GeometryReader { proxy in
                 VStack (spacing:0){
                     TabView(selection: $selectNavi) {
-                        Burning().tag(navis.burning)
+                        Burning().tag(navis.burning).padding(.top)
                         Record().tag(navis.record)
                         My(backToSplash: $backToSplash).tag(navis.my)
                     }
                     .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+                    
                     HStack {
                         ForEach(navis.allCases, id: \.self) { item in
                             bottomNav(item: item)
@@ -63,6 +64,7 @@ struct Container: View {
         .navigationTitle("")
         .navigationBarBackButtonHidden()
         .ignoresSafeArea()
+        
         .onChange(of: backToSplash) { oldValue, newValue in
             if newValue{
                 dismiss()
