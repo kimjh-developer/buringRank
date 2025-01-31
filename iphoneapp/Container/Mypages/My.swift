@@ -94,7 +94,15 @@ struct My: View {
                     }
                 }
                 .onAppear(perform: {
-                    vm.getTodayData()
+                    workoutManager.requestAuthorization { result in
+                        if result{
+                            vm.getThisMonthData()
+                        }
+                    }
+                    
+                        
+                    
+                    
                 })
                 NavigationLink {
                     Grades()

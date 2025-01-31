@@ -87,6 +87,7 @@ class UserAthenicationVM:ObservableObject{
         if let email = credential.email{
             userInformation.userEmail = email
         }
+        
         userInformation.userState = .normal
         saveUserInformation(userInformation)
         UserInformationManager.shared.userInformation = userInformation

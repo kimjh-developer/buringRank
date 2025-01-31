@@ -16,37 +16,40 @@ class MyVM: ObservableObject {
 }
 
 extension MyVM {
-    func getTodayData() {
-        // 오늘의 시작과 끝 날짜
+    
+    func getThisMonthData() {
+        // 이번 달의 시작과 끝 날짜
         UserAthenicationVM().loadUserInformation(completion: { info in
             if let userNickname = info?.userNickname{
-                self.nickName = userNickname
+                DispatchQueue.main.async{
+                    self.nickName = userNickname
+                }
             }
         })
         
-        let (startOfToday, endOfToday) = getStartAndEndOfDay()
+        let (startOfMonth, endOfMonth) = getStartAndEndOfMonth()
 
-        // Helper function to fetch today's data
-        func fetchTodayData(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryType) {
-            fetchDailyData(type: type, start: startOfToday, end: endOfToday) { todaySamples in
-                guard let todaySamples = todaySamples, !todaySamples.isEmpty else {
-                    print("오늘 \(summaryType.element.title) 데이터가 없습니다.")
+        // Helper function to fetch monthly data and calculate max
+        func fetchMonthlyData(type: HKQuantityTypeIdentifier, measureUnit: HKUnit, summaryType: SummaryType) {
+            fetchData(type: type, start: startOfMonth, end: endOfMonth) { monthlySamples in
+                guard let monthlySamples = monthlySamples, !monthlySamples.isEmpty else {
+                    print("이번 달 \(summaryType.element.title) 데이터가 없습니다.")
                     return
                 }
 
-                let todayTotal = todaySamples.reduce(0) {
+                let monthlyTotal = monthlySamples.reduce(0) {
                     $0 + $1.quantity.doubleValue(for: measureUnit)
                 }
-
-                let maxToday = todaySamples.max(by: {
+                
+                let maxMonthly = monthlySamples.max(by: {
                     $0.quantity.doubleValue(for: measureUnit) < $1.quantity.doubleValue(for: measureUnit)
                 })?.quantity.doubleValue(for: measureUnit) ?? 0
 
                 DispatchQueue.main.async {
                     let newRow = SummaryRow(
                         summaryType: summaryType,
-                        stack: SummaryRowElement(Str: "오늘 누적", Updown: nil, Value: todayTotal),
-                        best: SummaryRowElement(Str: "오늘 최고", Updown: nil, Value: maxToday),
+                        stack: SummaryRowElement(Str: "이번달 누적", Updown: nil, Value: monthlyTotal),
+                        best: SummaryRowElement(Str: "이번달 최고", Updown: nil, Value: maxMonthly),
                         duration: nil
                     )
                     if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == summaryType }) {
@@ -56,12 +59,11 @@ extension MyVM {
                     }
                 }
             }
-            getTodayWorkoutDuration()
         }
 
-        // 오늘의 운동 시간 계산
-        func getTodayWorkoutDuration() {
-            fetchTodayWorkoutDuration(start: startOfToday, end: endOfToday) { totalWorkoutDuration in
+        // 이번 달 운동 시간 계산
+        func getMonthlyWorkoutDuration() {
+            fetchMonthlyWorkoutDuration(start: startOfMonth, end: endOfMonth) { totalWorkoutDuration in
                 DispatchQueue.main.async {
                     let hours = Int(totalWorkoutDuration) / 60
                     let minutes = Int(totalWorkoutDuration) % 60
@@ -69,10 +71,10 @@ extension MyVM {
 
                     let formattedTime = String(format: "%02d : %02d : %02d", hours, minutes, seconds)
 
-                    let newRow = SummaryRow(
+                   let newRow = SummaryRow(
                         summaryType: .workoutDuration,
-                        stack: SummaryRowElement(Str: "오늘 운동 시간", Updown: nil, Value: totalWorkoutDuration),
-                        best: SummaryRowElement(Str: "오늘 운동 시간", Updown: nil, Value: totalWorkoutDuration),
+                        stack: SummaryRowElement(Str: "이번달 운동 시간", Updown: nil, Value: totalWorkoutDuration),
+                        best: SummaryRowElement(Str: "이번달 운동 시간", Updown: nil, Value: totalWorkoutDuration),
                         duration: nil
                     )
                     if let index = self.SummaryArray.firstIndex(where: { $0.summaryType == .workoutDuration }) {
@@ -81,22 +83,20 @@ extension MyVM {
                         self.SummaryArray.append(newRow)
                     }
                     self.workoutTime = formattedTime
-                    print("오늘 총 운동 시간: \(formattedTime)")
+                    print("이번 달 총 운동 시간: \(formattedTime)")
                 }
             }
         }
 
+        fetchMonthlyData(type: .heartRate, measureUnit: HKUnit(from: "count/min"), summaryType: .heartRate)
+        fetchMonthlyData(type: .stepCount, measureUnit: HKUnit.count(), summaryType: .walk)
+        fetchMonthlyData(type: .distanceWalkingRunning, measureUnit: HKUnit.meterUnit(with: .kilo), summaryType: .distance)
+        fetchMonthlyData(type: .activeEnergyBurned, measureUnit: HKUnit.kilocalorie(), summaryType: .calorie)
 
-        // 기존 데이터 유지
-        fetchTodayData(type: .heartRate, measureUnit: HKUnit(from: "count/min"), summaryType: .heartRate)
-        fetchTodayData(type: .stepCount, measureUnit: HKUnit.count(), summaryType: .walk)
-        fetchTodayData(type: .distanceWalkingRunning, measureUnit: HKUnit.meterUnit(with: .kilo), summaryType: .distance)
-        fetchTodayData(type: .activeEnergyBurned, measureUnit: HKUnit.kilocalorie(), summaryType: .calorie)
-
-        
+        getMonthlyWorkoutDuration()
     }
-
-    func fetchTodayWorkoutDuration(start: Date, end: Date, completion: @escaping (Double) -> Void) {
+    
+    func fetchMonthlyWorkoutDuration(start: Date, end: Date, completion: @escaping (Double) -> Void) {
         let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: .strictStartDate)
         let workoutType = HKObjectType.workoutType()
 
@@ -108,7 +108,7 @@ extension MyVM {
             }
 
             let totalDuration = (samples as? [HKWorkout])?.reduce(0) {
-                $0 + $1.duration / 60 // 분 단위 변환
+                $0 + $1.duration / 60
             } ?? 0
 
             completion(totalDuration)
@@ -117,7 +117,7 @@ extension MyVM {
         healthStore.execute(query)
     }
 
-    func fetchDailyData(type: HKQuantityTypeIdentifier, start: Date, end: Date, completion: @escaping ([HKQuantitySample]?) -> Void) {
+    func fetchData(type: HKQuantityTypeIdentifier, start: Date, end: Date, completion: @escaping ([HKQuantitySample]?) -> Void) {
         guard let quantityType = HKQuantityType.quantityType(forIdentifier: type) else {
             completion(nil)
             return
@@ -136,13 +136,22 @@ extension MyVM {
 
         healthStore.execute(query)
     }
-
-    func getStartAndEndOfDay() -> (start: Date, end: Date) {
+    
+    func getStartAndEndOfMonth() -> (start: Date, end: Date) {
         let calendar = Calendar.current
         let now = Date()
-        let startOfDay = calendar.startOfDay(for: now)
-        let endOfDay = calendar.date(byAdding: .day, value: 1, to: startOfDay) ?? now
-        return (startOfDay, endOfDay)
+        
+        // Get the first day of the month
+        let components = calendar.dateComponents([.year, .month], from: now)
+        let startOfMonth = calendar.date(from: components)!
+        
+        // Get the first day of the next month
+        let nextMonth = calendar.date(byAdding: .month, value: 1, to: startOfMonth)!
+        
+        // Calculate the end of the current month (which is the last moment of the day before the first day of the next month)
+        let endOfMonth = calendar.date(byAdding: .second, value: -1, to: nextMonth)!
+        
+        return (startOfMonth, endOfMonth)
     }
 }
 

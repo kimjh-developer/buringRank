@@ -44,7 +44,8 @@ struct Burning: View {
                 if vm.selectedWorkout == .functionalStrengthTraining {
                     Counter()
                 } else {
-                    GroupMembers()
+//                    GroupMembers()
+                    Tracker()
                 }
             }
         }

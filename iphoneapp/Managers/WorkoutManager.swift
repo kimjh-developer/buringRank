@@ -60,27 +60,27 @@ class WorkoutManager:NSObject,ObservableObject{
        ]
        
     // MARK: - 권한 요청
-    func requestAuthorization() {
+    func requestAuthorization(completion : @escaping (Bool)->Void) {
         // 공유 권한(toShare)은 nil로 설정하여 무시하고 읽기 권한만 요청
-        
+        var retValue : Bool = true
         healthStore.requestAuthorization(toShare: typesToShare, read: typesToRead) { success, error in
             if success {
-                
-                DispatchQueue.main.asyncAfter(deadline: .now()+1.0) {
-                    
-                    self.checkAuthorizationStatus()
+                self.checkAuthorizationStatus { result in
+                    retValue = result
+                    completion(retValue)
                 }
             } else {
-                DispatchQueue.main.async {
+                retValue = false
                     self.AuthoriseWarn = true
-                }
                 print("💀 Authorization NOT Granted: \(error?.localizedDescription ?? "No error")")
+                completion(retValue)
             }
         }
+        
     }
     
     // MARK: - 권한 상태 확인
-    private func checkAuthorizationStatus() {
+    private func checkAuthorizationStatus(completion:@escaping (Bool)->Void) {
             // 읽기 권한만 확인
             var allPermissionsGranted = true
             var typesToRequest = Set<HKObjectType>()
@@ -129,20 +129,14 @@ class WorkoutManager:NSObject,ObservableObject{
                     print("모든 권한이 이미 설정되어 있습니다.")
                 }
             
-            if allPermissionsGranted {
-                DispatchQueue.main.asyncAfter(deadline: .now()+2.0){
-                    self.AuthorizationFullyGranted = true
-                    print("Authorization Fully Granted for Reading")
-                    self.fetchUserData()
-                    
-                        self.authenicated = true
-                    
-                }
-            } else {
-                self.AuthoriseWarn = true
-                print("Partial Authorization Granted: Some permissions were denied for reading.")
-            }
+            completion(allPermissionsGranted)
         
+    }
+    func afterPermission(){
+                self.AuthorizationFullyGranted = true
+                print("Authorization Fully Granted for Reading")
+                self.fetchUserData()
+                self.authenicated = true
     }
     // Fetch user's age and height
     func fetchUserData() {
