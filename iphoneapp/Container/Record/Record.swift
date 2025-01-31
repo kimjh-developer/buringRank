@@ -9,9 +9,36 @@ import SwiftUI
 
 struct Record: View {
     @EnvironmentObject var workoutManager : WorkoutManager
-    private let weeks = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
-    private let thisDay = Date().dayOfWeek(locale: Locale(identifier: "ko_kr")).uppercased()
+//    private let weeks = ["MON","TUE","WED","THU","FRI","SAT","SUN"]
+//    private let thisDay = Date().dayOfWeek(locale: Locale(identifier: "ko_kr")).uppercased()
     @StateObject var vm = RecordVM()
+    
+    var weeks: [String] {
+            var calendar = Calendar.current
+            calendar.locale = Locale(identifier: "ko_KR")
+            let today = Date()
+            var dates: [String] = []
+            
+            for dayOffset in -6..<1 {
+                if let date = calendar.date(byAdding: .day, value: dayOffset, to: today) {
+                     let dateFormatter = DateFormatter()
+                     dateFormatter.dateFormat = "M/d"
+                     dateFormatter.locale = Locale(identifier: "ko_KR")
+                     let formattedDate = dateFormatter.string(from: date)
+                     dates.append(formattedDate)
+                }
+                
+            }
+//        workoutManager.existWeeks
+            return dates
+        }
+    
+    var thisDay: String {
+            let dateFormatter = DateFormatter()
+              dateFormatter.dateFormat = "M/d"
+              dateFormatter.locale = Locale(identifier: "ko_KR")
+            return dateFormatter.string(from: Date())
+        }
     
     var body: some View {
         ScrollView {
@@ -20,18 +47,18 @@ struct Record: View {
                 HStack {
                     ForEach(weeks.indices, id: \.self) { i in
                         Button {
-                            if workoutManager.existWeeks.contains(weeks[i]){
-                                vm.selectDay =  i
-                                workoutManager.performComparisonForSelectedWeekday(weekday: i)
+                            if workoutManager.existWeeks.contains(vm.getWeekdayFromDateString(weeks[i])){
+                                vm.selectDay = i
+                                workoutManager.performComparisonForSelectedWeekday(weekday: vm.getWeekdayFromDateString(weeks[i]) )
+                                print("\(weeks[i])이 선택되었습니다.")
                             }
                         } label: {
                             weekCell(item: weeks[i],
-                                     activate: workoutManager.existWeeks.contains(weeks[i]),
-                                     isToday: weeks[i] == thisDay,
+                                     activate: workoutManager.existWeeks.contains(vm.getWeekdayFromDateString(weeks[i])),
+                                     isToday: weeks[i].contains(thisDay),
                                      selected: vm.selectDay == i
                             )
                         }
-//                        .disabled(!workoutManager.existWeeks.contains(weeks[i]))
                     }
                 }
                 
@@ -59,12 +86,10 @@ struct Record: View {
                     }
                 }
                 
-                
                 summaryProgressBar()
                 
                 summarys()
             }
-            
         }
         .padding()
         .onAppear {
@@ -80,6 +105,8 @@ struct Record: View {
             }
         }
     }
+    
+    
     
     // MARK: - 요약디테일
     @ViewBuilder

@@ -82,6 +82,33 @@ class RecordVM : ObservableObject{
             fetchAndCompare(type: .activeEnergyBurned, measureUnit: HKUnit.kilocalorie(), summaryType: .calorie)
             fetchAndCompare(type: .distanceWalkingRunning, measureUnit: HKUnit.meterUnit(with: .kilo), summaryType: .distance)
         }
+    
+    func getWeekdayFromDateString(_ dateString: String) -> Int {
+             let dateFormatter = DateFormatter()
+             dateFormatter.dateFormat = "EEE\nM/d" // 요일 표시 형식에 따라 변경
+              dateFormatter.locale = Locale(identifier: "ko_KR")
+           
+           if let date = dateFormatter.date(from: dateString){
+               let calendar = Calendar.current
+               let weekDay = calendar.component(.weekday, from: date) - 1
+               
+               return weekDay
+           }
+            
+           let todayDateFormatter = DateFormatter()
+           todayDateFormatter.dateFormat = "M/d"
+            todayDateFormatter.locale = Locale(identifier: "ko_KR")
+           
+           if let date = todayDateFormatter.date(from: dateString){
+               let calendar = Calendar.current
+                let weekDay = calendar.component(.weekday, from: date) - 1
+               
+                return weekDay
+           }
+           
+           
+             return 0 // 날짜 형식이 맞지 않을 경우 처리
+       }
 
 }
 

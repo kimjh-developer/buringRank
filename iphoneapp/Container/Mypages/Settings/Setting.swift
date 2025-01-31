@@ -29,11 +29,7 @@ struct Setting: View {
                     .padding()
                     Divider()
                 }
-                NavigationLink {
-                    ChangeNickname()
-                } label: {
-                    moreview(title: "닉네임 변경")
-                }
+                
                 VStack {
                     HStack {
                         Text("버전정보")

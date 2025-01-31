@@ -19,8 +19,8 @@ struct My: View {
                 .ignoresSafeArea()
             VStack {
                 HStack {
-                    VStack(spacing: 5) {
-                        Text("\(vm.nickName ?? "")랭커님의 최고 기록")
+                    VStack(alignment:.leading,spacing: 5) {
+                        Text("\(vm.nickName ?? "랭커")님의 최고 기록")
                             .style(fontName: .kbold, fontSize: 25, fontColor: .black)
                             
                         HStack(spacing: 0) {
@@ -65,6 +65,12 @@ struct My: View {
                                 
                             }
                             .padding()
+                        }
+                        
+                        NavigationLink {
+                            ChangeNickname()
+                        } label: {
+                            navigationRow(title: "닉네임 변경")
                         }
                         
 //                        NavigationLink {

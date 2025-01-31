@@ -20,7 +20,7 @@ class WorkoutManager:NSObject,ObservableObject{
     @Published var SummaryArray : Array<SummaryRow> = []
     @Published var summaryArray : Array<SummaryRow>?
     @Published var updownValue: Int?
-    @Published var existWeeks:Array<String> = []
+    @Published var existWeeks:Array<Int> = [0,1,2,3,4,5,6]
     @Published var workoutProgressArray : Array<WorkoutProgress>=[]
     @Published var ThismaxHeartRate : Double?
     @Published var LastmaxHeartRate : Double?
@@ -133,10 +133,12 @@ class WorkoutManager:NSObject,ObservableObject{
         
     }
     func afterPermission(){
-                self.AuthorizationFullyGranted = true
-                print("Authorization Fully Granted for Reading")
-                self.fetchUserData()
-                self.authenicated = true
+        DispatchQueue.main.async {
+            self.AuthorizationFullyGranted = true
+            print("Authorization Fully Granted for Reading")
+            self.fetchUserData()
+            self.authenicated = true
+        }
     }
     // Fetch user's age and height
     func fetchUserData() {
@@ -210,11 +212,11 @@ class WorkoutManager:NSObject,ObservableObject{
                         let dateFormatter = DateFormatter()
                         dateFormatter.dateFormat = "EE" // 요일 출력
                         let dateString = dateFormatter.string(from: sample.startDate).uppercased()
-                        DispatchQueue.main.async {
-                            if !self.existWeeks.contains(dateString) {
-                                self.existWeeks.append(dateString)
-                            }
-                        }
+//                        DispatchQueue.main.async {
+//                            if !self.existWeeks.contains(dateString) {
+//                                self.existWeeks.append(dateString)
+//                            }
+//                        }
                     }
                     
                     
