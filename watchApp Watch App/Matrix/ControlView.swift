@@ -11,56 +11,71 @@ struct ControlView: View {
     @Binding var Gohome : Bool
     @State var nowSaving:Bool = false
     @EnvironmentObject var workoutManager : WorkoutManager
+    
     var body: some View {
         ZStack {
-            HStack {
-                VStack {
-                    Image(systemName: "xmark")
-                        .resizable()
-                        .renderingMode(.template)
-                        .aspectRatio(contentMode: .fit)
-                        .foregroundStyle(.red)
-                        .frame(height: 32)
-                        .padding()
-                        .padding(.vertical)
-                    Btn(defaultString: "운동종료",fontsize: 20,fontcolor: .white, defaultColor: Color.btnActivate)
-                }
-                .onTapGesture {
-                    nowSaving.toggle()
-                    workoutManager.endWorkout()
+            HStack(spacing: 20) {
+                // End Workout
+                VStack(spacing: 8) {
+                    Button(action: {
+                        withAnimation {
+                            nowSaving = true
+                            workoutManager.endWorkout()
+                        }
+                    }) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 24, weight: .bold))
+                            .frame(width: 60, height: 60)
+                            .background(Color.red.opacity(0.2))
+                            .foregroundColor(.red)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
                     
+                    Text("종료")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(.red)
                 }
                 
-                
-                VStack {
-                    Image(systemName: workoutManager.running ? "pause" : "play")
-                        .resizable()
-                        .renderingMode(.template)
-                        .aspectRatio(contentMode: .fit)
-                        .foregroundStyle( workoutManager.running ? Color.btnDisable : Color.btnActivate)
-                        .frame(height: 32)
-                        .padding()
-                        .padding(.vertical)
-                    Btn(defaultString: workoutManager.running ? "일시정지" : "계속운동",fontsize: 20,fontcolor: .black, defaultColor: .white)
-                }
-                .onTapGesture {
-                    workoutManager.togglePause()
+                // Pause / Resume
+                VStack(spacing: 8) {
+                    Button(action: {
+                        withAnimation {
+                            workoutManager.togglePause()
+                        }
+                    }) {
+                        Image(systemName: workoutManager.running ? "pause.fill" : "play.fill")
+                            .font(.system(size: 24, weight: .bold))
+                            .frame(width: 60, height: 60)
+                            .background(workoutManager.running ? Color.white.opacity(0.1) : WatchTheme.primaryOrange.opacity(0.2))
+                            .foregroundColor(workoutManager.running ? .white : WatchTheme.primaryOrange)
+                            .clipShape(Circle())
+                    }
+                    .buttonStyle(.plain)
+                    
+                    Text(workoutManager.running ? "일시정지" : "계속")
+                        .font(.system(size: 12, weight: .medium))
+                        .foregroundColor(workoutManager.running ? .white : WatchTheme.primaryOrange)
                 }
             }
             
-            if nowSaving{
-                Color.black.opacity(0.5)
-                    .ignoresSafeArea()
-                
-                ProgressView {
-                    Text("운동을 저장합니다")
-                        .style(fontName: .player, fontSize: 25, fontColor: .white)
+            if nowSaving {
+                ZStack {
+                    WatchTheme.background.opacity(0.8)
+                        .ignoresSafeArea()
+                    
+                    VStack(spacing: 12) {
+                        ProgressView()
+                            .tint(WatchTheme.primaryOrange)
+                        Text("운동 기록 저장 중")
+                            .font(.system(size: 14, weight: .bold))
+                            .foregroundColor(.white)
+                    }
                 }
-                
             }
         }
         .onChange(of: workoutManager.showingSummaryView) { oldValue, newValue in
-            if newValue{
+            if newValue {
                 self.Gohome.toggle()
             }
         }

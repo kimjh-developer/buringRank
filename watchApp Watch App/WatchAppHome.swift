@@ -10,62 +10,86 @@ import HealthKit
 
 struct WatchAppHome: View {
     @EnvironmentObject var workoutManager : WorkoutManager
-    let grids : [GridItem] = [GridItem(.flexible(),spacing: 10),GridItem(.flexible(),spacing: 10)]
+    let grids : [GridItem] = [GridItem(.flexible(),spacing: 12),GridItem(.flexible(),spacing: 12)]
     var workoutTypes : [HKWorkoutActivityType] = [.functionalStrengthTraining,.running,.hiking,.mindAndBody,]
     @State var moveNext : Bool = false
+    
     var body: some View {
-        VStack {
-            ScrollView {
-                Text("운동 타입을 선택해주세요")
-                    .style(fontName: .kmedium, fontSize: 16, fontColor: .white)
-                    .padding(.vertical)
-                LazyVGrid(columns: grids,spacing: 10, content: {
-                    ForEach(workoutTypes, id: \.self) { item in
-                        cell(type: item)
+        NavigationStack {
+            VStack {
+                Text("운동 타입 선택")
+                    .font(.system(size: 16, weight: .bold))
+                    .foregroundColor(.white)
+                    .padding(.bottom, 8)
+                
+                ScrollView {
+                    LazyVGrid(columns: grids, spacing: 12) {
+                        ForEach(workoutTypes, id: \.self) { item in
+                            cell(type: item)
+                        }
                     }
-                })
-                Btn(defaultString: "다음", defaultColor: workoutManager.selectedWorkout == nil ? Color.btnInactivate : Color.btnActivate)
-                    .padding(.vertical)
-                    .onTapGesture {
-                        moveNext.toggle()
+                    .padding(.bottom, 12)
+                    
+                    Button(action: {
+                        if workoutManager.selectedWorkout != nil {
+                            moveNext = true
+                        }
+                    }) {
+                        Text("다음 단계로")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 8)
                     }
+                    .buttonStyle(.borderedProminent)
+                    .tint(workoutManager.selectedWorkout == nil ? .gray : WatchTheme.primaryRed)
+                    .disabled(workoutManager.selectedWorkout == null)
+                }
+            }
+            .padding(.horizontal, 8)
+            .navigationDestination(isPresented: $moveNext) {
+                if let type = workoutManager.selectedWorkout {
+                    ChooseDificulty(hKWorkoutActivityType: type, Gohome: $moveNext)
+                }
             }
         }
-        .padding(.horizontal)
-        .navigationTitle("")
-        .navigationBarBackButtonHidden()
-        .navigationDestination(isPresented:$moveNext) {
-            if let type = workoutManager.selectedWorkout{
-                ChooseDificulty(hKWorkoutActivityType: type,Gohome: $moveNext)
-            }
-        }
-        
-        
     }
     
-    // MARK: - 그리그셀
     @ViewBuilder
-    private func cell(type:HKWorkoutActivityType) -> some View{
-        VStack{
+    private func cell(type: HKWorkoutActivityType) -> some View {
+        let isSelected = (type == workoutManager.selectedWorkout)
+        
+        VStack(spacing: 8) {
             type.icon
                 .renderingMode(.template)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
-                .frame(height: 25)
-                .foregroundStyle(type == workoutManager.selectedWorkout ? Color.btnActivate : .white)
-                
+                .frame(height: 28)
+                .foregroundStyle(isSelected ? .white : .white.opacity(0.6))
+            
             Text(type.name)
-                .style(fontName: .kmedium, fontSize: 10, fontColor: type == workoutManager.selectedWorkout ? Color.btnActivate : .white)
-                .frame(maxWidth: .infinity)
+                .font(.system(size: 11, weight: isSelected ? .bold : .medium))
+                .foregroundColor(isSelected ? .white : .white.opacity(0.6))
+                .multilineTextAlignment(.center)
         }
-        .padding()
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 14)
         .background {
-            RoundedRectangle(cornerRadius: 10)
-                .stroke(type == workoutManager.selectedWorkout ? Color.btnActivate : .white, lineWidth: 2.0)
-                
+            if isSelected {
+                WatchTheme.burningGradient
+                    .cornerRadius(16)
+            } else {
+                WatchTheme.surface
+                    .cornerRadius(16)
+            }
         }
+        .overlay(
+            RoundedRectangle(cornerRadius: 16)
+                .stroke(isSelected ? Color.white.opacity(0.3) : Color.clear, lineWidth: 1)
+        )
         .onTapGesture {
-            workoutManager.selectedWorkout = type
+            withAnimation(.spring()) {
+                workoutManager.selectedWorkout = type
+            }
         }
     }
 }

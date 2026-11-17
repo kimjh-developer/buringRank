@@ -35,17 +35,25 @@ struct SelectWorkoutLevel: View {
                         default : EmptyView()
                         }
                     }
+                    
+                    Spacer()
+                    
                     Button {
                         moveNext.toggle()
                     } label: {
                         Btn(defaultString: workoutManager.workoutLevel == nil ? "선택하세요" : "갓쮸아!!", fontsize: 25, fontcolor: .white, defaultColor: workoutManager.workoutLevel == nil ? Color.btnInactivate : Color.themeRed)
                             .cornerRadius(50)
                     }
+                    .padding(.bottom, 30) // Adjusted for navigation bar
                 }
             }
         }
         .navigationDestination(isPresented: $moveNext) {
-            Onworkout(workoutDone: $workoutDone)
+            if workoutManager.selectedWorkout == .functionalStrengthTraining {
+                Counter()
+            } else {
+                Onworkout(workoutDone: $workoutDone)
+            }
         }
         
     }

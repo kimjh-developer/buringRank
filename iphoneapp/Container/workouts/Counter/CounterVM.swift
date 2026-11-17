@@ -21,6 +21,7 @@ class CounterVM:ObservableObject{
     @Published var choosedmuscleGroupExercises : MuscleGroupExercise?
     @Published var exercises : String?
     @Published var counter : Int = 0
+    @Published var setCount : Int = 1
     @Published var timerString: String = "00:00:00"
     @Published var showSummaryActivate : Bool = false
     
@@ -30,6 +31,8 @@ class CounterVM:ObservableObject{
     private var timerSubscription: AnyCancellable?
     private var startTime: Date?
     
+    private let storageKey = "weightlifting_records"
+
     func startTimer() {
         if startTime != nil {return}
         startTime = Date()
@@ -57,9 +60,12 @@ class CounterVM:ObservableObject{
     func upCounter(){
         if exercises != nil{
             counter += 1
+            if startTime == nil {
+                startTimer()
+            }
         }else{
             warnMSG = "운동형태를 먼저 선택하세요"
-            warnActivate.toggle()
+            warnActivate = true
         }
     }
     
@@ -67,22 +73,42 @@ class CounterVM:ObservableObject{
         if counter == 0{return}
         counter -= 1
     }
+
+    func completeSet() {
+        if exercises == nil {
+            warnMSG = "운동형태를 먼저 선택하세요"
+            warnActivate = true
+            return
+        }
+        
+        saveworkout()
+        counter = 0
+        setCount += 1
+    }
+
+    func resetWorkout() {
+        counter = 0
+        setCount = 1
+    }
     
     private func saveworkout(){
         if let choosedmuscleGroupExercises = choosedmuscleGroupExercises,
            let exercises = exercises{
-            if counter>0{
+            if counter > 0 {
                 savedMuscleGroupExercises.append(SavedMuscleGroupExercises(muscleGroupExercise: choosedmuscleGroupExercises, exercises: exercises, counter: counter))
             }
         }
     }
+
     func otherWorkout(){
         saveworkout()
         
         counter = 0
+        setCount = 1
         choosedmuscleGroupExercises = nil
         exercises = nil
     }
+
     func finishWorkout(){
         saveworkout()
         if savedMuscleGroupExercises.isEmpty{
@@ -92,12 +118,22 @@ class CounterVM:ObservableObject{
         }
         pauseTimer()
         stopTimer()
+        persistData()
         showSummaryActivate = true
-        
-        print("savedMuscleGroupExercises:\(savedMuscleGroupExercises)")
     }
+
+    private func persistData() {
+        let encoder = JSONEncoder()
+        let records = savedMuscleGroupExercises.map { record in
+            WeightRecord(muscleGroup: record.muscleGroupExercise.muscleGroup, exercise: record.exercises, sets: record.counter, date: Date())
+        }
+        
+        if let encoded = try? encoder.encode(records) {
+            UserDefaults.standard.set(encoded, forKey: storageKey)
+        }
+    }
+    
     private func pauseTimer() {
-        // 타이머를 일시정지하고 경과 시간을 저장
         timerSubscription?.cancel()
         timerSubscription = nil
         if let startTime = startTime {
@@ -105,18 +141,24 @@ class CounterVM:ObservableObject{
             self.timerString = self.formatTime(elapsedTime)
         }
     }
-
 }
 
-struct MuscleGroupExercise {
+struct MuscleGroupExercise: Codable {
     let muscleGroup: String
     let exercises: [String]
 }
 
-struct SavedMuscleGroupExercises{
+struct SavedMuscleGroupExercises {
     var muscleGroupExercise : MuscleGroupExercise
     var exercises : String
     var counter : Int
+}
+
+struct WeightRecord: Codable {
+    let muscleGroup: String
+    let exercise: String
+    let sets: Int
+    let date: Date
 }
 
 

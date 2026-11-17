@@ -20,7 +20,24 @@ struct Counter: View {
                     Text("세트 카운터")
                         .style(fontName: .kbold, fontSize: 32, fontColor: .white)
                     workoutTypes()
-                    counter(proxy: proxy)
+                    
+                    ZStack {
+                        // Invisible button for screen-click counting
+                        Button {
+                            vm.upCounter()
+                        } label: {
+                            Color.clear
+                                .contentShape(Rectangle()) // Ensure entire area is clickable
+                        }
+                        .frame(maxWidth: .infinity, maxHeight: .infinity)
+                        
+                        VStack {
+                            Text("Set \(vm.setCount)")
+                                .style(fontName: .kbold, fontSize: 32, fontColor: .themeRed)
+                            counter(proxy: proxy)
+                        }
+                    }
+                    
                     Spacer()
                     timerView()
                     btnGroup()
@@ -177,7 +194,7 @@ struct Counter: View {
                         .foregroundStyle(.white)
                     
                     Button {
-                        vm.upCounter()
+                        vm.completeSet()
                     } label: {
                         HStack {
                             Text("셋트완료")

@@ -10,58 +10,67 @@ import HealthKit
 struct SummaryView: View {
     @EnvironmentObject var workoutManager : WorkoutManager
     @Environment(\.dismiss) var dismiss
+    
     @State private var durationFormatter : DateComponentsFormatter = {
         let formatter = DateComponentsFormatter()
         formatter.allowedUnits = [.hour,.minute,.second]
         formatter.zeroFormattingBehavior = .pad
         return formatter
     }()
+    
     var body: some View {
-        if workoutManager.selectedWorkout == nil{
-            ProgressView("운동을 저장중입니다.")
+        if workoutManager.selectedWorkout == nil {
+            ProgressView("운동 기록 저장 중...")
                 .navigationBarHidden(true)
-        }else{
-            VStack {
-                ScrollView {
-                    VStack(spacing: 15) {
-                        singleRow(title: "운동 시간", content:
-                                    durationFormatter.string(from:workoutManager.workout?.duration ?? 0.0) ?? "")
-                        if workoutManager.selectedWorkout == .hiking || workoutManager.selectedWorkout == .running{
-                            singleRow(title: "이동 거리",
-                                      content: Measurement(value: workoutManager.workout?.totalDistance?.doubleValue(for: .meter()) ?? 0, unit: UnitLength.meters).formatted(.measurement(width: .abbreviated,usage: .road)),measure: "m")
-                        }
+        } else {
+            ScrollView {
+                VStack(spacing: 20) {
+                    Text("운동 완료")
+                        .font(.system(size: 20, weight: .bold))
+                        .foregroundColor(WatchTheme.primaryOrange)
+                        .padding(.top)
                     
-                    singleRow(title: "최고 심박수", content: "170",fColor: Color.themeRed,measure: "BPM")
-                    singleRow(title: "소모 칼로리", content: 1231.addComma(),measure: "KCAL")
-                        ActivityRingView(healthStore: workoutManager.healthStore)
-                            .frame(width: 50, height: 50)
+                    VStack(spacing: 12) {
+                        summaryRow(title: "운동 시간", value: durationFormatter.string(from: workoutManager.workout?.duration ?? 0.0) ?? "00:00:00")
                         
-                        Btn(defaultString: "버랭업 완료", fontsize: 20, fontcolor: .white, defaultColor: Color.btnActivate)
-                            .padding(.vertical)
-                            .onTapGesture {
-                                dismiss()
-                            }
-                }
+                        if workoutManager.selectedWorkout == .hiking || workoutManager.selectedWorkout == .running {
+                            summaryRow(title: "이동 거리", value: String(format: "%.2f km", (workoutManager.workout?.totalDistance?.doubleValue(for: .meter()) ?? 0) / 1000))
+                        }
+                        
+                        summaryRow(title: "소모 칼로리", value: "\(Int(workoutManager.workout?.totalEnergyBurned?.doubleValue(for: .kilocalorie()) ?? 0)) kcal")
+                        
+                        summaryRow(title: "평균 심박수", value: "142 bpm") // Mocked average
+                    }
+                    .padding()
+                    .background(WatchTheme.surface)
+                    .cornerRadius(20)
                     
+                    Button(action: {
+                        dismiss()
+                    }) {
+                        Text("버랭업 완료")
+                            .font(.system(size: 16, weight: .bold))
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 10)
+                    }
+                    .buttonStyle(.borderedProminent)
+                    .tint(WatchTheme.burningGradient.colors.first)
+                }
+                .padding(.horizontal)
             }
         }
-        }
-            
     }
-    // MARK: - 제목 내용라인
+    
     @ViewBuilder
-    private func singleRow(title:String,content:String,fColor:Color = .white,measure:String? = nil) -> some View{
+    private func summaryRow(title: String, value: String) -> some View {
         HStack {
             Text(title)
-                .style(fontName: .kmedium, fontSize: 14, fontColor: .white)
+                .font(.system(size: 13))
+                .foregroundColor(.white.opacity(0.6))
             Spacer()
-            Text(content)
-                .style(fontName: .kmedium, fontSize: 14, fontColor: fColor)
-            if let value = measure{
-                Text(value)
-                    .style(fontName: .kmedium, fontSize: 14, fontColor: .white)
-            }
-            
+            Text(value)
+                .font(.system(size: 15, weight: .bold))
+                .foregroundColor(.white)
         }
     }
 }
